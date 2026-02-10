@@ -11,8 +11,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy only the necessary application files from builder
-COPY --chown=appuser:appgroup app/*.py ./
-COPY --chown=appuser:appgroup app/pyproject.toml ./
+COPY --chown=appuser:appgroup *.py ./
+COPY --chown=appuser:appgroup pyproject.toml ./
 
 RUN chmod 0750 /run/*.py
 

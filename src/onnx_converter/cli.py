@@ -106,6 +106,12 @@ def main() -> None:
 
             from onnx_converter import convert_sklearn_to_onnx
 
+            if not args.allow_pickle:
+                print(
+                    "Warning: pickle can execute arbitrary code when loading untrusted files. "
+                    "Only load models from trusted sources or pass --allow-pickle to acknowledge this risk."
+                )
+
             with open(args.model_path, "rb") as f:
                 model = pickle.load(f)
 

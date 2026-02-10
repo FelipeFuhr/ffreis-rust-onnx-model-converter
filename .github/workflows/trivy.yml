@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts trivy-results
-          images=(ffreis/base ffreis/base-builder ffreis/builder ffreis/base-runner ffreis/runner)
+          images=(ffreis/base ffreis/base-runner ffreis/onnx-converter-uv-venv ffreis/onnx-converter-package ffreis/onnx-converter-cli)
           for image in "${images[@]}"; do
             name="${image##*/}"
             tar="artifacts/${name}.tar"

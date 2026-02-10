@@ -4,8 +4,8 @@ USER root
 
 WORKDIR /run
 
-COPY --chown=appuser:appgroup scripts/entrypoint.sh entrypoint.sh
-
-RUN chmod 0750 /run/entrypoint.sh
-
+# NOTE: Previously this image attempted to copy a non-existent
+# `scripts/entrypoint.sh` into `/run/entrypoint.sh`, which caused
+# the Docker build to fail. That COPY and associated chmod have been
+# removed to avoid referencing files that are not in the build context.
 USER appuser:appgroup

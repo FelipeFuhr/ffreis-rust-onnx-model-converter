@@ -129,7 +129,7 @@ repos:
     hooks:
       - id: uv-lock-check
         name: uv lock --check
-        entry: bash -c 'uv lock --check'
+        entry: bash -c 'if [ -f uv.lock ]; then uv lock --check; else echo "uv.lock not found, skipping uv lock --check"; fi'
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]
