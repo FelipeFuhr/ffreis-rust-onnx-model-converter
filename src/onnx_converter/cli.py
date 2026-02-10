@@ -3,6 +3,7 @@
 ONNX Model Converter CLI
 Command-line interface for converting ML models to ONNX format.
 """
+
 import argparse
 import os
 import sys
@@ -13,25 +14,45 @@ def main() -> None:
         description="Convert ML models from PyTorch, TensorFlow/Keras, or Scikit-learn to ONNX format"
     )
 
-    subparsers = parser.add_subparsers(dest="framework", help="Framework to convert from")
+    subparsers = parser.add_subparsers(
+        dest="framework", help="Framework to convert from"
+    )
 
-    pytorch_parser = subparsers.add_parser("pytorch", help="Convert PyTorch model to ONNX")
-    pytorch_parser.add_argument("model_path", help="Path to PyTorch model (.pt or .pth file)")
+    pytorch_parser = subparsers.add_parser(
+        "pytorch", help="Convert PyTorch model to ONNX"
+    )
+    pytorch_parser.add_argument(
+        "model_path", help="Path to PyTorch model (.pt or .pth file)"
+    )
     pytorch_parser.add_argument("output_path", help="Output path for ONNX model")
     pytorch_parser.add_argument(
-        "--input-shape", required=True, help="Input shape (comma-separated, e.g., 1,3,224,224)"
+        "--input-shape",
+        required=True,
+        help="Input shape (comma-separated, e.g., 1,3,224,224)",
     )
-    pytorch_parser.add_argument("--opset-version", type=int, default=14, help="ONNX opset version")
+    pytorch_parser.add_argument(
+        "--opset-version", type=int, default=14, help="ONNX opset version"
+    )
 
-    tf_parser = subparsers.add_parser("tensorflow", help="Convert TensorFlow/Keras model to ONNX")
-    tf_parser.add_argument("model_path", help="Path to model (SavedModel directory or .h5 file)")
+    tf_parser = subparsers.add_parser(
+        "tensorflow", help="Convert TensorFlow/Keras model to ONNX"
+    )
+    tf_parser.add_argument(
+        "model_path", help="Path to model (SavedModel directory or .h5 file)"
+    )
     tf_parser.add_argument("output_path", help="Output path for ONNX model")
-    tf_parser.add_argument("--opset-version", type=int, default=14, help="ONNX opset version")
+    tf_parser.add_argument(
+        "--opset-version", type=int, default=14, help="ONNX opset version"
+    )
 
-    sklearn_parser = subparsers.add_parser("sklearn", help="Convert Scikit-learn model to ONNX")
+    sklearn_parser = subparsers.add_parser(
+        "sklearn", help="Convert Scikit-learn model to ONNX"
+    )
     sklearn_parser.add_argument("model_path", help="Path to pickled sklearn model")
     sklearn_parser.add_argument("output_path", help="Output path for ONNX model")
-    sklearn_parser.add_argument("--n-features", type=int, required=True, help="Number of input features")
+    sklearn_parser.add_argument(
+        "--n-features", type=int, required=True, help="Number of input features"
+    )
 
     args = parser.parse_args()
 
@@ -45,7 +66,7 @@ def main() -> None:
 
             from onnx_converter import convert_pytorch_to_onnx
 
-            model = torch.load(args.model_path)
+            model = torch.load(args.model_path, map_location="cpu")
             if isinstance(model, dict) and "model_state_dict" in model:
                 print(
                     "Warning: Model appears to be a checkpoint. "
