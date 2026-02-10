@@ -64,9 +64,14 @@ test: ## Run tests
 .PHONY: check
 check: lint test ## Run lint and tests
 
+.PHONY: coverage
+coverage: ## Generate coverage report
+	mkdir -p coverage
+	$(VENV_DIR)/bin/pytest --cov=src --cov-report=xml:coverage/cobertura.xml --cov-report=html:coverage/html --cov-report=term
+
 .PHONY: clean
 clean: ## Remove caches and venv
-	rm -rf $(VENV_DIR) .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov coverage.xml
+	rm -rf $(VENV_DIR) .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov coverage.xml coverage
 	find . -type d -name '__pycache__' -exec rm -r {} +
 	find . -type f -name '*.py[cod]' -delete
 
