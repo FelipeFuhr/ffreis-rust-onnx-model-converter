@@ -16,32 +16,34 @@ concurrency:
 jobs:
   lint-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
-      - name: Install Python dependencies
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install -e .
-          python -m pip install pytest
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
-      - name: Test
+      - name: Check lock present
+        run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+
+      - name: Install deps (including dev tools)
+        run: uv sync --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Tests
         run: |
-          set -euo pipefail
           if find . -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
-            python -m pytest
+            uv run pytest
           else
-            echo "No tests found. Skipping pytest."
+            echo "No tests found."
           fi

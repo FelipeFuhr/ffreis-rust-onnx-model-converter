@@ -1,4 +1,4 @@
-name: Code Security (Cargo Audit)
+name: Code Security (Python Deps Audit)
 
 on:
   workflow_dispatch:
@@ -20,42 +20,35 @@ jobs:
   deps-security:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: bash
-        working-directory: app
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Assert Rust workspace exists
-        shell: bash
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Assert uv.lock exists
         run: |
           set -euo pipefail
-          if [ ! -f Cargo.toml ]; then
-            echo "Expected Rust workspace in ./app, but ./app/Cargo.toml was not found."
-            echo "Repo root contents:"
-            ls -la ..
-            echo "app/ contents (if any):"
-            ls -la . || true
-            exit 1
-          fi
+          test -s uv.lock || (echo "uv.lock missing — run: uv lock"; exit 1)
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
-        with:
-          toolchain: stable
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
-        with:
-          workspaces: |
-            app -> target
-
-      - name: cargo-audit
+      # Deterministic install from lock
+      - name: Install dependencies from lock
         run: |
           set -euo pipefail
-          cargo install cargo-audit --locked
-          cargo audit
+          uv sync
+
+      # Python equivalent of cargo-audit
+      - name: pip-audit
+        run: |
+          set -euo pipefail
+          uv run pip install --upgrade pip-audit
+          uv run pip-audit

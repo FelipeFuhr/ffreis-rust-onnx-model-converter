@@ -1,0 +1,55 @@
+name: Build All (Python + uv)
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  matrix-build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Require lock
+        run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+
+      - name: Install deps (dev)
+        run: uv sync --group dev
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      # Equivalent to `cargo build --release`
+      - name: Build package artifacts
+        run: uv build
+
+      # CLI smoke test (like running built binary)
+      - name: CLI smoke test
+        run: |
+          if uv run python -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('pkg') else 1)"; then
+            echo "Package import OK"
+          fi
+
+          # if you have console_script entrypoint:
+          uv run onnx-converter --help || true

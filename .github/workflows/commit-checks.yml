@@ -1,4 +1,4 @@
-name: Commit Checks (Lefthook)
+name: Commit Checks (pre-commit + uv)
 
 on:
   pull_request:
@@ -14,29 +14,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-test:
+  commit-checks:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v4
+      # Python for uv + pre-commit
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+        with:
           enable-cache: true
 
-      - name: Install Python dependencies
+      - name: Require uv.lock
         run: |
           set -euo pipefail
-          uv pip install -r requirements.txt
-          uv pip install -e .
-          uv pip install pytest
+          test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Test
+      # install project + dev tools from lock
+      - name: Install deps
+        run: |
+          set -euo pipefail
+          uv sync --group dev
+
+      # install pre-commit itself (if not already in dev deps)
+      - name: Install pre-commit
+        run: uv run pip install pre-commit
+
+      # cache hook environments (big speedup)
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: precommit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
+      - name: Tests
         run: |
           set -euo pipefail
           if find . -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then

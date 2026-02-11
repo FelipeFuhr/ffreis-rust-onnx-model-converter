@@ -1,4 +1,4 @@
-name: Code Coverage (Codecov)
+name: Code Coverage (Codecov — Python + uv)
 
 on:
   pull_request:
@@ -16,45 +16,35 @@ concurrency:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+      - uses: actions/setup-python@v5
         with:
-          toolchain: stable
-          components: llvm-tools-preview
+          python-version: "3.12"
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
+      - uses: astral-sh/setup-uv@v4
         with:
-          workspaces: |
-            app -> target
+          enable-cache: true
 
-      - name: Install cargo-llvm-cov
+      - name: Require uv.lock
         run: |
           set -euo pipefail
-          cargo install cargo-llvm-cov --locked
+          test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install Python deps for coverage
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install defusedxml
+      - name: Install deps (dev)
+        run: uv sync --group dev
 
       - name: Generate coverage (Makefile)
         run: |
           set -euo pipefail
-          make -C app coverage
-          test -s coverage/cobertura.xml
+          make coverage
+          test -s coverage.xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
-          files: ./coverage/cobertura.xml
+          files: ./coverage.xml
           fail_ci_if_error: true
           verbose: true
