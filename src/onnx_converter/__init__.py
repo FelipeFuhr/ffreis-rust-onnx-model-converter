@@ -1,6 +1,6 @@
 """
 ONNX Model Converter
-Converts PyTorch, Keras, TensorFlow, and Scikit-learn models to ONNX format.
+Converts PyTorch, TensorFlow/Keras, and scikit-learn models to ONNX format.
 """
 
 __version__ = "0.1.0"

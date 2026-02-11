@@ -1,0 +1,135 @@
+minimum_pre_commit_version: "3.6.0"
+
+default_stages: [pre-commit]
+fail_fast: false
+
+repos:
+  # -------------------------------------------------------------------
+  # 1) General hygiene: whitespace, EOF, conflicts, file sizes, secrets
+  # -------------------------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Prevent committing obvious broken states
+      - id: check-merge-conflict
+      - id: check-case-conflict
+
+      # Keep files clean / consistent
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+      # Basic config/data validation
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+
+      # Safety / repo hygiene
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]  # 2MB cap (tune to taste)
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+      # Optional but useful for repos with templates / docs
+      - id: fix-byte-order-marker
+      - id: check-ast              # parses python files (quick syntax sanity)
+      - id: check-docstring-first  # docstring must be first statement
+
+  # -------------------------------------------------------------------
+  # 2) Prevent committing secrets (more thorough than detect-private-key)
+  # -------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # -------------------------------------------------------------------
+  # 3) Ruff: lint + format (fast). Runs inside uv env.
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: ruff-lint
+        name: ruff (lint)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        pass_filenames: true
+
+      - id: ruff-format
+        name: ruff (format)
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        pass_filenames: true
+
+  # -------------------------------------------------------------------
+  # 4) (Optional) Black if you still want it (ruff format can replace it)
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: uv run black
+        language: system
+        types: [python]
+        pass_filenames: true
+
+  # -------------------------------------------------------------------
+  # 5) Type checking (usually better at pre-push than pre-commit)
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        args: ["--pretty", "--show-error-codes"]
+
+  # -------------------------------------------------------------------
+  # 6) Tests (put on pre-push to keep commits snappy)
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (fast)
+        entry: uv run pytest -q -m "not slow"
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  # -------------------------------------------------------------------
+  # 7) Security scanning: Bandit + dependency audit (pre-push)
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit
+        entry: uv run bandit -q -r .
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: pip-audit
+        name: pip-audit
+        entry: uv run pip-audit
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  # -------------------------------------------------------------------
+  # 8) uv lock consistency (great for CI + dev discipline)
+  # -------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: uv-lock-check
+        name: uv lock --check
+        entry: bash -c 'if [ -f uv.lock ]; then uv lock --check; else echo "uv.lock not found, skipping uv lock --check"; fi'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]

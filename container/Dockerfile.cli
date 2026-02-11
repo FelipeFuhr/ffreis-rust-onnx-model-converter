@@ -1,0 +1,27 @@
+ARG PACKAGE_IMAGE=ffreis/onnx-converter-package
+FROM ${PACKAGE_IMAGE} as package
+
+FROM ffreis/base-runner
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=package /opt/venv /opt/venv
+
+RUN chown -R appuser:appgroup /opt/venv
+
+ENV PYTHONUNBUFFERED=1
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+WORKDIR /app
+
+USER appuser:appgroup
+
+ENTRYPOINT ["convert-to-onnx"]
+CMD ["--help"]

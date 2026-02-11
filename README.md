@@ -16,7 +16,11 @@ A comprehensive toolkit for converting machine learning models from PyTorch, Ker
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
+pip install -e ".[torch]"
+pip install -e ".[tensorflow]"
+pip install -e ".[sklearn]"
+pip install -e ".[all]"
 ```
 
 ## Quick Start
@@ -84,13 +88,13 @@ convert_sklearn_to_onnx(
 
 ```bash
 # PyTorch
-python convert_to_onnx.py pytorch model.pt output.onnx --input-shape 1,3,224,224
+convert-to-onnx pytorch model.pt output.onnx --input-shape 1,3,224,224
 
 # TensorFlow/Keras
-python convert_to_onnx.py tensorflow saved_model_dir output.onnx
+convert-to-onnx tensorflow saved_model_dir output.onnx
 
 # Scikit-learn
-python convert_to_onnx.py sklearn model.pkl output.onnx --n-features 4
+convert-to-onnx sklearn model.pkl output.onnx --n-features 4
 ```
 
 ## Examples
@@ -178,7 +182,7 @@ ONNX models can be served using various frameworks:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - PyTorch 2.0+ (for PyTorch models)
 - TensorFlow 2.13+ (for TensorFlow/Keras models)
 - Scikit-learn 1.3+ (for sklearn models)

@@ -1,10 +1,11 @@
 """
 PyTorch to ONNX Converter
 """
+import os
+from typing import Optional, Tuple
+
 import torch
 import torch.onnx
-import os
-from typing import Optional, Tuple, Any
 
 
 def convert_pytorch_to_onnx(
@@ -19,7 +20,7 @@ def convert_pytorch_to_onnx(
 ) -> str:
     """
     Convert a PyTorch model to ONNX format.
-    
+
     Args:
         model: PyTorch model to convert
         output_path: Path where the ONNX model will be saved
@@ -29,35 +30,30 @@ def convert_pytorch_to_onnx(
         dynamic_axes: Dictionary specifying dynamic axes for inputs/outputs
         opset_version: ONNX opset version (default: 14)
         **kwargs: Additional arguments to pass to torch.onnx.export
-        
+
     Returns:
         Path to the saved ONNX model
-        
+
     Example:
         >>> model = torchvision.models.resnet18(pretrained=True)
         >>> convert_pytorch_to_onnx(
-        ...     model, 
-        ...     "resnet18.onnx", 
+        ...     model,
+        ...     "resnet18.onnx",
         ...     (1, 3, 224, 224),
         ...     dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
         ... )
     """
-    # Set model to evaluation mode
     model.eval()
-    
-    # Create dummy input
+
     dummy_input = torch.randn(*input_shape)
-    
-    # Set default input/output names
+
     if input_names is None:
         input_names = ["input"]
     if output_names is None:
         output_names = ["output"]
-    
-    # Ensure output directory exists
+
     os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-    
-    # Export to ONNX
+
     torch.onnx.export(
         model,
         dummy_input,
@@ -70,6 +66,6 @@ def convert_pytorch_to_onnx(
         dynamic_axes=dynamic_axes,
         **kwargs
     )
-    
+
     print(f"✓ PyTorch model successfully converted to ONNX: {output_path}")
     return output_path

@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "onnx-model-converter"
+version = "0.1.0"
+description = "Convert PyTorch, TensorFlow/Keras, and scikit-learn models to ONNX"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24.0",
+    "onnx>=1.15.0",
+]
+
+[project.optional-dependencies]
+cli = [
+    "typer>=0.12.0",
+    "rich>=13.7.0",
+]
+runtime = [
+    "onnxruntime>=1.17.0",
+]
+torch = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+]
+tensorflow = [
+    "tensorflow>=2.13.0",
+    "tf2onnx>=1.16.0",
+]
+sklearn = [
+    "scikit-learn>=1.3.0",
+    "skl2onnx>=1.16.0",
+    # strongly recommended for loading:
+    "joblib>=1.3.0",
+    # recommended for safer sklearn serialization:
+    "skops>=0.10.0",
+]
+all = [
+    "onnxruntime>=1.17.0",
+    "typer>=0.12.0",
+    "rich>=13.7.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "tensorflow>=2.13.0",
+    "tf2onnx>=1.16.0",
+    "scikit-learn>=1.3.0",
+    "skl2onnx>=1.16.0",
+    "joblib>=1.3.0",
+    "skops>=0.10.0",
+]
+
+[project.scripts]
+# Typer app entrypoint (recommended)
+convert-to-onnx = "onnx_converter.cli.app:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["onnx_converter"]
+force_single_line = true
+skip_gitignore = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", "venv", "__pycache__"]
+show-source = true
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+exclude = "(venv|.venv|tests/helpers)"
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers --tb=short -ra"
+
+[tool.uv]
+resolution = "highest"

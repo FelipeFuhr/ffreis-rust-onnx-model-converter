@@ -1,0 +1,54 @@
+name: Code Security (Python Deps Audit)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: "0 9 * * 1" # Mondays 09:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deps-security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Assert uv.lock exists
+        run: |
+          set -euo pipefail
+          test -s uv.lock || (echo "uv.lock missing — run: uv lock"; exit 1)
+
+      # Deterministic install from lock
+      - name: Install dependencies from lock
+        run: |
+          set -euo pipefail
+          uv sync
+
+      # Python equivalent of cargo-audit
+      - name: pip-audit
+        run: |
+          set -euo pipefail
+          uv run pip install --upgrade pip-audit
+          uv run pip-audit

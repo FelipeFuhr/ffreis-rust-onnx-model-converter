@@ -1,0 +1,14 @@
+ARG UV_VENV_IMAGE=ffreis/onnx-converter-uv-venv
+FROM ${UV_VENV_IMAGE}
+
+ARG EXTRAS=all
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+WORKDIR /app
+
+COPY --chown=appuser:appgroup pyproject.toml README.md convert_to_onnx.py /app/
+COPY --chown=appuser:appgroup src /app/src
+
+RUN uv pip install --python /opt/venv/bin/python ".[${EXTRAS}]"

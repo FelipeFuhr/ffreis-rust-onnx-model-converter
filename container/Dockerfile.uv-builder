@@ -1,0 +1,34 @@
+FROM ffreis/base
+
+ARG PYTHON_VERSION=3.12
+ARG EXTRAS=all
+
+USER root
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      python${PYTHON_VERSION} \
+      python${PYTHON_VERSION}-venv \
+      python3-pip \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python${PYTHON_VERSION} -m pip install --no-cache-dir uv
+
+WORKDIR /tmp/project
+
+COPY pyproject.toml uv.lock ./
+
+RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1)
+
+RUN uv venv /opt/venv --python python${PYTHON_VERSION} \
+ && . /opt/venv/bin/activate \
+ && uv sync --extra ${EXTRAS}
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+RUN chown -R appuser:appgroup /opt/venv
+
+USER appuser:appgroup
+WORKDIR /app

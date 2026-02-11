@@ -1,0 +1,50 @@
+name: Code Coverage (Codecov — Python + uv)
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Require uv.lock
+        run: |
+          set -euo pipefail
+          test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+
+      - name: Install deps (dev)
+        run: uv sync --group dev
+
+      - name: Generate coverage (Makefile)
+        run: |
+          set -euo pipefail
+          make coverage
+          test -s coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true
