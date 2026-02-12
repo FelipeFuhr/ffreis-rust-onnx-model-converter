@@ -10,7 +10,6 @@ import joblib
 from skl2onnx.common.data_types import FloatTensorType
 
 from onnx_converter.errors import PluginError
-from onnx_converter.plugins.base import ConverterPlugin
 
 
 class AutoSklearnPlugin:

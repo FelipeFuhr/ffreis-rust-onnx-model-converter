@@ -2,6 +2,17 @@
 
 This guide focuses on advanced plugin implementation patterns for custom model families.
 
+## Security Considerations
+
+**Important:** Plugin loading executes arbitrary Python code from the specified module or file path. This presents a security risk:
+
+- **Only use plugins from trusted sources.** Malicious plugin code can access your file system, network, and execute arbitrary commands.
+- **Never load plugins from untrusted or unknown sources.** This includes plugins from unverified repositories, unknown authors, or external/untrusted file paths.
+- **Review plugin code before use.** Always inspect the source code of third-party plugins before loading them.
+- **Plugin loading requires explicit user action.** The CLI requires explicit `--plugin-module` flags, ensuring users are aware when external code is being executed.
+
+The plugin loading mechanism is designed for trusted development and deployment scenarios where the user has control over the plugin sources. It is not designed to safely execute untrusted code.
+
 ## When to Use a Plugin
 
 Use a plugin when:

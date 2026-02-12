@@ -143,10 +143,15 @@ class PluginRegistry:
     def load_module(self, module_or_path: str) -> None:
         """Load plugin providers from module name or file path.
 
+        .. warning::
+            This method executes code from the specified module. Only load plugins
+            from trusted sources.
+
         Parameters
         ----------
         module_or_path : str
-            Python import path or filesystem path to plugin module.
+            Python import path or filesystem path to plugin module. Must be from
+            a trusted source.
         """
         module = _import_module_or_path(module_or_path)
         _register_from_module(module, self)
@@ -155,10 +160,22 @@ class PluginRegistry:
 def _import_module_or_path(module_or_path: str) -> ModuleType:
     """Import module by import path or filesystem path.
 
+    .. warning::
+        This function executes arbitrary Python code from the specified module or file.
+        Only load plugins from trusted sources. Malicious plugin code can compromise
+        your system security. Plugin loading should only be used with explicit user
+        intent (e.g., via ``--plugin-module`` CLI flag) and never with untrusted paths.
+
+    .. note::
+        This function intentionally does not restrict file paths to specific directories
+        because legitimate plugin use cases require flexibility in plugin locations
+        (e.g., project-local plugins, user plugins, system plugins). Security is ensured
+        through explicit user action (CLI flags) rather than path restrictions.
+
     Parameters
     ----------
     module_or_path : str
-        Python module path or local file path.
+        Python module path or local file path. Must be from a trusted source.
 
     Returns
     -------
