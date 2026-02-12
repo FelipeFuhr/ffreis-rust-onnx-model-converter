@@ -15,6 +15,26 @@ class _DummyModel:
     pass
 
 
+class _FakeParityChecker:
+    """Fake parity checker for testing."""
+    def check(self, *args, **kwargs):
+        pass
+
+
+def _mock_converter_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Mock converter, postprocessor, and parity checker dependencies."""
+    import onnx_converter
+    import onnx_converter.postprocess
+    import onnx_converter.adapters.parity_checkers
+    
+    # Mock postprocess functions to avoid loading ONNX files
+    monkeypatch.setattr(onnx_converter.postprocess, "add_standard_metadata", lambda **kwargs: None)
+    monkeypatch.setattr(onnx_converter.postprocess, "add_onnx_metadata", lambda *args, **kwargs: None)
+    
+    # Mock parity checker to avoid dependencies
+    monkeypatch.setattr(onnx_converter.adapters.parity_checkers, "TorchParityChecker", _FakeParityChecker)
+
+
 def _install_dummy_torch(
     monkeypatch: pytest.MonkeyPatch,
     jit_load: Callable[[str], Any],
@@ -38,6 +58,8 @@ def _install_dummy_torch(
 
 
 def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
+    import onnx_converter
+    
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -55,21 +77,8 @@ def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
         assert kwargs["input_shape"] == (1, 3)
         return str(output_path)
 
-    import onnx_converter
-    import onnx_converter.postprocess
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
-
-    # Mock postprocess functions to avoid loading ONNX files
-    monkeypatch.setattr(onnx_converter.postprocess, "add_standard_metadata", lambda **kwargs: None)
-    monkeypatch.setattr(onnx_converter.postprocess, "add_onnx_metadata", lambda *args, **kwargs: None)
-
-    # Mock parity checker to avoid dependencies
-    class FakeParityChecker:
-        def check(self, *args, **kwargs):
-            pass
-
-    import onnx_converter.adapters.parity_checkers
-    monkeypatch.setattr(onnx_converter.adapters.parity_checkers, "TorchParityChecker", FakeParityChecker)
+    _mock_converter_dependencies(monkeypatch)
 
     out = api_module.convert_torch_file_to_onnx(
         model_path=model_path,
@@ -83,6 +92,8 @@ def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
 
 
 def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None:
+    import onnx_converter
+    
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -99,21 +110,8 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
     def fake_convert(**kwargs: Any) -> str:
         return str(output_path)
 
-    import onnx_converter
-    import onnx_converter.postprocess
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
-
-    # Mock postprocess functions to avoid loading ONNX files
-    monkeypatch.setattr(onnx_converter.postprocess, "add_standard_metadata", lambda **kwargs: None)
-    monkeypatch.setattr(onnx_converter.postprocess, "add_onnx_metadata", lambda *args, **kwargs: None)
-
-    # Mock parity checker to avoid dependencies
-    class FakeParityChecker:
-        def check(self, *args, **kwargs):
-            pass
-
-    import onnx_converter.adapters.parity_checkers
-    monkeypatch.setattr(onnx_converter.adapters.parity_checkers, "TorchParityChecker", FakeParityChecker)
+    _mock_converter_dependencies(monkeypatch)
 
     with pytest.raises(ConversionError):
         api_module.convert_torch_file_to_onnx(
@@ -126,6 +124,8 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
 
 
 def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) -> None:
+    import onnx_converter
+    
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -145,21 +145,8 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
     def fake_convert(**kwargs: Any) -> str:
         return str(output_path)
 
-    import onnx_converter
-    import onnx_converter.postprocess
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
-
-    # Mock postprocess functions to avoid loading ONNX files
-    monkeypatch.setattr(onnx_converter.postprocess, "add_standard_metadata", lambda **kwargs: None)
-    monkeypatch.setattr(onnx_converter.postprocess, "add_onnx_metadata", lambda *args, **kwargs: None)
-
-    # Mock parity checker to avoid dependencies
-    class FakeParityChecker:
-        def check(self, *args, **kwargs):
-            pass
-
-    import onnx_converter.adapters.parity_checkers
-    monkeypatch.setattr(onnx_converter.adapters.parity_checkers, "TorchParityChecker", FakeParityChecker)
+    _mock_converter_dependencies(monkeypatch)
 
     out = api_module.convert_torch_file_to_onnx(
         model_path=model_path,
@@ -174,6 +161,8 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
 
 
 def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(tmp_path, monkeypatch) -> None:
+    import onnx_converter
+    
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -195,21 +184,8 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(tmp_path, mon
     def fake_convert(**kwargs: Any) -> str:
         return str(output_path)
 
-    import onnx_converter
-    import onnx_converter.postprocess
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
-
-    # Mock postprocess functions to avoid loading ONNX files
-    monkeypatch.setattr(onnx_converter.postprocess, "add_standard_metadata", lambda **kwargs: None)
-    monkeypatch.setattr(onnx_converter.postprocess, "add_onnx_metadata", lambda *args, **kwargs: None)
-
-    # Mock parity checker to avoid dependencies
-    class FakeParityChecker:
-        def check(self, *args, **kwargs):
-            pass
-
-    import onnx_converter.adapters.parity_checkers
-    monkeypatch.setattr(onnx_converter.adapters.parity_checkers, "TorchParityChecker", FakeParityChecker)
+    _mock_converter_dependencies(monkeypatch)
 
     out = api_module.convert_torch_file_to_onnx(
         model_path=model_path,
