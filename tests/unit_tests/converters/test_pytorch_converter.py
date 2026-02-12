@@ -8,11 +8,42 @@ from typing import Callable
 import pytest
 
 from onnx_converter import api as api_module
+from onnx_converter.application.use_cases import build_conversion_options
+from onnx_converter.application.use_cases import convert_torch_file
 from onnx_converter.errors import ConversionError
+from onnx_converter.errors import UnsafeLoadError
 
 
 class _DummyModel:
     pass
+
+
+class _MockConverter:
+    """Mock converter for testing."""
+
+    def convert(self, model: Any, output_path: Any, options: Any) -> Any:
+        return output_path
+
+
+class _MockParity:
+    """Mock parity checker for testing."""
+
+    def check(self, model: Any, onnx_path: Any, parity: Any, context: Any = None) -> None:
+        pass
+
+
+class _MockPostprocess:
+    """Mock postprocessor for testing."""
+
+    def run(
+        self,
+        output_path: Any,
+        source_path: Any,
+        framework: str,
+        config_metadata: Any,
+        options: Any,
+    ) -> None:
+        pass
 
 
 def _install_dummy_torch(
@@ -53,35 +84,25 @@ def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
-    class _MockLoader:
+    class _MockLoaderPrefersTorchScript:
         def load(self, model_path: Any, allow_unsafe: bool = False) -> Any:
-            # Import torch from sys.modules which we monkeypatched
             import torch
+
             return torch.jit.load(str(model_path))
 
-    class _MockConverter:
+    class _MockConverterCheckOptions(_MockConverter):
         def convert(self, model: Any, output_path: Any, options: Any) -> Any:
             assert isinstance(model, _DummyModel)
             assert options["input_shape"] == (1, 3)
             return output_path
 
-    class _MockParity:
-        def check(self, model: Any, onnx_path: Any, parity: Any, context: Any = None) -> None:
-            pass
-
-    class _MockPostprocess:
-        def run(self, output_path: Any, source_path: Any, framework: str, config_metadata: Any, options: Any) -> None:
-            pass
-
-    from onnx_converter.application.use_cases import build_conversion_options, convert_torch_file
-    
     result = convert_torch_file(
         model_path=model_path,
         output_path=output_path,
         input_shape=(1, 3),
         options=build_conversion_options(opset_version=14, allow_unsafe=False),
-        loader=_MockLoader(),
-        converter=_MockConverter(),
+        loader=_MockLoaderPrefersTorchScript(),
+        converter=_MockConverterCheckOptions(),
         parity_checker=_MockParity(),
         postprocessor=_MockPostprocess(),
     )
@@ -103,11 +124,10 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
-    class _MockLoader:
+    class _MockLoaderRequiresUnsafe:
         def load(self, model_path: Any, allow_unsafe: bool = False) -> Any:
-            # Import torch from sys.modules which we monkeypatched
             import torch
-            from onnx_converter.errors import UnsafeLoadError
+
             # Try jit.load first
             try:
                 return torch.jit.load(str(model_path))
@@ -121,23 +141,7 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
                             "TorchScript loading failed and safe torch.load "
                             "fallback was unsuccessful."
                         ) from safe_exc
-                    # Would fall back to unsafe load here
                     raise
-
-    class _MockConverter:
-        def convert(self, model: Any, output_path: Any, options: Any) -> Any:
-            return output_path
-
-    class _MockParity:
-        def check(self, model: Any, onnx_path: Any, parity: Any, context: Any = None) -> None:
-            pass
-
-    class _MockPostprocess:
-        def run(self, output_path: Any, source_path: Any, framework: str, config_metadata: Any, options: Any) -> None:
-            pass
-
-    from onnx_converter.application.use_cases import build_conversion_options, convert_torch_file
-    from onnx_converter.errors import UnsafeLoadError
 
     with pytest.raises((ConversionError, UnsafeLoadError)):
         convert_torch_file(
@@ -145,7 +149,7 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
             output_path=output_path,
             input_shape=(1, 3),
             options=build_conversion_options(opset_version=14, allow_unsafe=False),
-            loader=_MockLoader(),
+            loader=_MockLoaderRequiresUnsafe(),
             converter=_MockConverter(),
             parity_checker=_MockParity(),
             postprocessor=_MockPostprocess(),
@@ -168,10 +172,10 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
-    class _MockLoader:
+    class _MockLoaderUsesSafeLoad:
         def load(self, model_path: Any, allow_unsafe: bool = False) -> Any:
-            # Import torch from sys.modules which we monkeypatched
             import torch
+
             # Try jit.load first
             try:
                 return torch.jit.load(str(model_path))
@@ -179,26 +183,12 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
                 # Try safe load
                 return torch.load(str(model_path), map_location="cpu", weights_only=True)
 
-    class _MockConverter:
-        def convert(self, model: Any, output_path: Any, options: Any) -> Any:
-            return output_path
-
-    class _MockParity:
-        def check(self, model: Any, onnx_path: Any, parity: Any, context: Any = None) -> None:
-            pass
-
-    class _MockPostprocess:
-        def run(self, output_path: Any, source_path: Any, framework: str, config_metadata: Any, options: Any) -> None:
-            pass
-
-    from onnx_converter.application.use_cases import build_conversion_options, convert_torch_file
-
     result = convert_torch_file(
         model_path=model_path,
         output_path=output_path,
         input_shape=(1, 3),
         options=build_conversion_options(opset_version=14, allow_unsafe=True),
-        loader=_MockLoader(),
+        loader=_MockLoaderUsesSafeLoad(),
         converter=_MockConverter(),
         parity_checker=_MockParity(),
         postprocessor=_MockPostprocess(),
@@ -226,10 +216,10 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(tmp_path, mon
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
-    class _MockLoader:
+    class _MockLoaderFallsBackToUnsafe:
         def load(self, model_path: Any, allow_unsafe: bool = False) -> Any:
-            # Import torch from sys.modules which we monkeypatched
             import torch
+
             # Try jit.load first
             try:
                 return torch.jit.load(str(model_path))
@@ -243,26 +233,12 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(tmp_path, mon
                         return torch.load(str(model_path), map_location="cpu", weights_only=False)
                     raise
 
-    class _MockConverter:
-        def convert(self, model: Any, output_path: Any, options: Any) -> Any:
-            return output_path
-
-    class _MockParity:
-        def check(self, model: Any, onnx_path: Any, parity: Any, context: Any = None) -> None:
-            pass
-
-    class _MockPostprocess:
-        def run(self, output_path: Any, source_path: Any, framework: str, config_metadata: Any, options: Any) -> None:
-            pass
-
-    from onnx_converter.application.use_cases import build_conversion_options, convert_torch_file
-
     result = convert_torch_file(
         model_path=model_path,
         output_path=output_path,
         input_shape=(1, 3),
         options=build_conversion_options(opset_version=14, allow_unsafe=True),
-        loader=_MockLoader(),
+        loader=_MockLoaderFallsBackToUnsafe(),
         converter=_MockConverter(),
         parity_checker=_MockParity(),
         postprocessor=_MockPostprocess(),
