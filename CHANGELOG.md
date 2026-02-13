@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+<!-- This section will be updated with a version number and date when released (e.g., [1.0.0] - YYYY-MM-DD) -->
 
 ### Major Architectural Refactoring
 
@@ -217,7 +218,7 @@ This release represents a complete architectural overhaul of the ONNX Model Conv
 ### Commits
 
 - `bf9b10c`: feat: add improvements
-- `ec9e490`: feat: more tests (note: commit message doesn't reflect full scope of changes)
+- `ec9e490`: feat: more tests (note: commit message does not reflect full scope of changes)
 
 ---
 
