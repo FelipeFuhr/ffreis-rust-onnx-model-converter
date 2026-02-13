@@ -53,7 +53,12 @@ def example_simple_classifier() -> None:
     print("=" * 60)
 
     X, y = load_iris(return_X_y=True)
-    model = RandomForestClassifier(n_estimators=10, random_state=42)
+    model = RandomForestClassifier(
+        n_estimators=10,
+        random_state=42,
+        min_samples_leaf=1,
+        max_features="sqrt",
+    )
     model.fit(X, y)
 
     output_path = Path("outputs/rf_classifier.onnx")
@@ -85,7 +90,15 @@ def example_pipeline() -> None:
     pipeline = Pipeline(
         [
             ("scaler", StandardScaler()),
-            ("classifier", RandomForestClassifier(n_estimators=10, random_state=42)),
+            (
+                "classifier",
+                RandomForestClassifier(
+                    n_estimators=10,
+                    random_state=42,
+                    min_samples_leaf=1,
+                    max_features="sqrt",
+                ),
+            ),
         ],
         memory=str(cache_dir),
     )

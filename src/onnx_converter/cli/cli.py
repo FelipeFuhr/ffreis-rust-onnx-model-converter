@@ -47,6 +47,7 @@ PARITY_RTOL_HELP = "Relative tolerance for parity check."
 METADATA_HELP = "Custom ONNX metadata KEY=VALUE (repeatable)."
 QUANTIZE_HELP = "Apply ONNX Runtime dynamic quantization."
 OPTIMIZE_HELP = "Optimize ONNX graph after conversion."
+QUANTIZE_PURPOSE = "dynamic quantization"
 
 
 # -----------------------------
@@ -339,7 +340,7 @@ def pytorch_cmd(
         ]
     )
     if quantize_dynamic:
-        _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
+        _require_deps([MissingDep("onnxruntime", "runtime", QUANTIZE_PURPOSE)])
     if optimize:
         _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
@@ -447,7 +448,7 @@ def tensorflow_cmd(
         ]
     )
     if quantize_dynamic:
-        _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
+        _require_deps([MissingDep("onnxruntime", "runtime", QUANTIZE_PURPOSE)])
     if optimize:
         _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
@@ -565,7 +566,7 @@ def sklearn_cmd(
         ]
     )
     if quantize_dynamic:
-        _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
+        _require_deps([MissingDep("onnxruntime", "runtime", QUANTIZE_PURPOSE)])
     if optimize:
         _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
