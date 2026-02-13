@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -20,16 +20,18 @@ from examples.custom_sklearn_transformer import MultiplyByConstant
 def main() -> None:
     """Run custom-converter CLI flow with explicit pass/fail checks."""
     X, y = load_iris(return_X_y=True)
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+    cache_dir = output_dir / "pipeline_cache"
     pipeline = Pipeline(
         [
             ("scale", MultiplyByConstant(factor=1.5)),
             ("clf", LogisticRegression(max_iter=200)),
-        ]
+        ],
+        memory=str(cache_dir),
     )
     pipeline.fit(X, y)
 
-    output_dir = Path("outputs")
-    output_dir.mkdir(exist_ok=True)
     model_path = output_dir / "custom_sklearn.joblib"
     onnx_path = output_dir / "custom_sklearn.onnx"
     joblib.dump(pipeline, model_path)
@@ -77,7 +79,8 @@ def main() -> None:
     print(f"Max |proba diff|: {max_abs_diff:.8f}")
     if not np.allclose(sk_proba, onnx_proba, atol=1e-5, rtol=1e-4):
         raise SystemExit(
-            f"FAIL: probability mismatch (max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
+            "FAIL: probability mismatch "
+            f"(max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
         )
 
     print(f"PASS: {onnx_path}")

@@ -1,4 +1,4 @@
-FROM ffreis/base-runner
+FROM ffreis/base-runner:local
 
 USER root
 WORKDIR /app
@@ -9,11 +9,11 @@ RUN apt-get update && \
       python3.11-venv \
       python3-pip \
       ca-certificates && \
+    python3.11 -m pip install --no-cache-dir --upgrade pip uv && \
     rm -rf /var/lib/apt/lists/*
 
-RUN python3.11 -m pip install --no-cache-dir --upgrade pip uv
-
-COPY --chown=appuser:appgroup . /app
-RUN chmod -R a-w /app
+COPY --chown=appuser:appgroup --chmod=0444 . /app
+RUN find /app -type d -exec chmod 0555 {} + && \
+    chmod -R a-w /app
 
 USER appuser

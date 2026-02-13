@@ -1,4 +1,4 @@
-FROM onnx-converter/examples-base
+FROM onnx-converter/examples-base:local
 
 RUN uv pip install --system --editable ".[runtime]" && \
     uv pip install --system --index-url https://download.pytorch.org/whl/cpu "torch>=2.0.0"

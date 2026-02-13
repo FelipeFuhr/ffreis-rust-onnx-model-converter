@@ -1,4 +1,4 @@
-FROM ffreis/base-runner
+FROM ffreis/base-runner:local
 
 USER root
 

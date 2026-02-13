@@ -40,19 +40,21 @@ def main() -> None:
 
     # 1) Data + sklearn training
     X, y = load_iris(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(
+    X_train, X_test, y_train, _ = train_test_split(
         X,
         y,
         test_size=0.25,
         random_state=42,
         stratify=y,
     )
+    cache_dir = output_dir / "compare_pipeline_cache"
 
     pipeline = Pipeline(
         [
             ("scale", MultiplyByConstant(factor=1.5)),
             ("clf", LogisticRegression(max_iter=200)),
-        ]
+        ],
+        memory=str(cache_dir),
     )
     pipeline.fit(X_train, y_train)
     joblib.dump(pipeline, model_path)

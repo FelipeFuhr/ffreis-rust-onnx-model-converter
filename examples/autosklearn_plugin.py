@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 import joblib
 from skl2onnx.common.data_types import FloatTensorType
@@ -21,7 +21,6 @@ class AutoSklearnPlugin:
         self,
         model_path: Path,
         model_type: str | None,
-        options: Mapping[str, object],
     ) -> bool:
         if model_type and model_type.lower() == "autosklearn":
             return True

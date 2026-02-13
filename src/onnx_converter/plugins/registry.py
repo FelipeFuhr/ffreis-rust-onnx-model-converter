@@ -124,7 +124,6 @@ class PluginRegistry:
             if plugin.can_handle(
                 model_path=payload.model_path,
                 model_type=payload.model_type,
-                options=payload.options,
             )
         ]
         if not matches:

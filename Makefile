@@ -111,7 +111,7 @@ build-base: ## Build base image (pinned by digest env)
 
 .PHONY: build-base-runner
 build-base-runner: build-base ## Build base-runner image
-	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.base-runner -t $(PREFIX)/base-runner $(BASE_DIR)
+	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.base-runner -t $(PREFIX)/base-runner -t $(PREFIX)/base-runner:local $(BASE_DIR)
 
 .PHONY: build-uv-venv
 build-uv-venv: build-base ## Build uv venv image

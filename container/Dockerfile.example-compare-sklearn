@@ -1,4 +1,4 @@
-FROM onnx-converter/examples-base
+FROM onnx-converter/examples-base:local
 
 RUN uv pip install --system --editable ".[cli,sklearn,runtime]"
 

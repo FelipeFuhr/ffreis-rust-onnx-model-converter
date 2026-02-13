@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sys
 import types
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
 
 import pytest
 
@@ -28,14 +28,21 @@ class _MockConverter:
 class _MockParity:
     """Mock parity checker for testing."""
 
+    def __init__(self) -> None:
+        self.calls = 0
+
     def check(
         self, model: Any, onnx_path: Any, parity: Any, context: Any = None
     ) -> None:
-        pass
+        self.calls += 1
+        del model, onnx_path, parity, context
 
 
 class _MockPostprocess:
     """Mock postprocessor for testing."""
+
+    def __init__(self) -> None:
+        self.calls = 0
 
     def run(
         self,
@@ -45,7 +52,8 @@ class _MockPostprocess:
         config_metadata: Any,
         options: Any,
     ) -> None:
-        pass
+        self.calls += 1
+        del output_path, source_path, framework, config_metadata, options
 
 
 def _install_dummy_torch(

@@ -1,4 +1,4 @@
-FROM onnx-converter/examples-base
+FROM onnx-converter/examples-base:local
 
 USER root
 RUN apt-get update && \
@@ -8,9 +8,8 @@ RUN apt-get update && \
       gfortran \
       libopenblas-dev \
       liblapack-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN uv pip install --system --editable ".[cli,runtime,sklearn]" && \
+    rm -rf /var/lib/apt/lists/* && \
+    uv pip install --system --editable ".[cli,runtime,sklearn]" && \
     uv pip install --system "auto-sklearn==0.15.0"
 
 USER appuser:appgroup

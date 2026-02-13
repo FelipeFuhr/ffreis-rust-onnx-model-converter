@@ -31,7 +31,6 @@ class SklearnFilePlugin:
         self,
         model_path: Path,
         model_type: str | None,
-        options: Mapping[str, Any],
     ) -> bool:
         """Check whether this plugin can convert the given artifact.
 
@@ -41,15 +40,11 @@ class SklearnFilePlugin:
             Path to the model artifact.
         model_type : str | None
             Optional model family hint.
-        options : Mapping[str, Any]
-            Raw plugin options.
-
         Returns
         -------
         bool
             ``True`` when this plugin should handle the model.
         """
-        del options
         if model_type and model_type.lower() in {"sklearn", "autosklearn"}:
             return True
         return model_path.suffix.lower() in {

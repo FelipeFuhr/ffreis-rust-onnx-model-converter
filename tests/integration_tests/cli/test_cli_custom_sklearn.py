@@ -32,11 +32,13 @@ def test_cli_sklearn_custom_transformer(tmp_path) -> None:
     from examples.custom_sklearn_transformer import MultiplyByConstant
 
     X, y = load_iris(return_X_y=True)
+    cache_dir = tmp_path / "pipeline_cache"
     pipeline = Pipeline(
         [
             ("scale", MultiplyByConstant(factor=1.5)),
             ("clf", LogisticRegression(max_iter=200)),
-        ]
+        ],
+        memory=str(cache_dir),
     )
     pipeline.fit(X, y)
 

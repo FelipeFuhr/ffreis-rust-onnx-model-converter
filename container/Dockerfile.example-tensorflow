@@ -1,4 +1,4 @@
-FROM onnx-converter/examples-base
+FROM onnx-converter/examples-base:local
 
 RUN uv pip install --system --editable ".[runtime]" && \
     uv pip install --system "tensorflow-cpu>=2.13.0" "tf2onnx>=1.16.0"

@@ -28,7 +28,6 @@ def convert_torch_file_to_onnx(
     metadata: Optional[Mapping[str, str]] = None,
     parity_input_path: Optional[Path] = None,
     parity_atol: float = 1e-5,
-    parity_rtol: float = 1e-4,
 ) -> Path:
     """Convert a serialized PyTorch model artifact to ONNX."""
     options = build_conversion_options(
@@ -39,7 +38,6 @@ def convert_torch_file_to_onnx(
         metadata=metadata,
         parity_input_path=parity_input_path,
         parity_atol=parity_atol,
-        parity_rtol=parity_rtol,
     )
     result = convert_torch_file(
         model_path=model_path,

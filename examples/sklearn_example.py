@@ -79,16 +79,18 @@ def example_pipeline() -> None:
     print("=" * 60)
 
     X, y = load_iris(return_X_y=True)
+    output_path = Path("outputs/pipeline.onnx")
+    output_path.parent.mkdir(exist_ok=True)
+    cache_dir = output_path.parent / "pipeline_cache"
     pipeline = Pipeline(
         [
             ("scaler", StandardScaler()),
             ("classifier", RandomForestClassifier(n_estimators=10, random_state=42)),
-        ]
+        ],
+        memory=str(cache_dir),
     )
     pipeline.fit(X, y)
 
-    output_path = Path("outputs/pipeline.onnx")
-    output_path.parent.mkdir(exist_ok=True)
     convert_sklearn_to_onnx(
         model=pipeline,
         output_path=str(output_path),

@@ -41,6 +41,13 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
+OPTIMIZE_PURPOSE = "ONNX graph optimization"
+PARITY_INPUT_HELP = "Path to .npy/.npz/.csv/.txt input batch for parity check."
+PARITY_RTOL_HELP = "Relative tolerance for parity check."
+METADATA_HELP = "Custom ONNX metadata KEY=VALUE (repeatable)."
+QUANTIZE_HELP = "Apply ONNX Runtime dynamic quantization."
+OPTIMIZE_HELP = "Optimize ONNX graph after conversion."
+
 
 # -----------------------------
 # Dependency checks / utilities
@@ -284,31 +291,20 @@ def pytorch_cmd(
     optimize: bool = typer.Option(
         False,
         "--optimize",
-        help="Optimize ONNX graph after conversion.",
+        help=OPTIMIZE_HELP,
     ),
     quantize_dynamic: bool = typer.Option(
-        False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
+        False, "--quantize-dynamic", help=QUANTIZE_HELP
     ),
     metadata: list[str] | None = typer.Option(
-        None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
+        None, "--metadata", help=METADATA_HELP
     ),
     parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
         readable=True,
-        help="Path to .npy/.npz/.csv/.txt input batch for parity check.",
-    ),
-    parity_atol: float = typer.Option(
-        1e-5, "--parity-atol", help="Absolute tolerance for parity check."
-    ),
-    parity_rtol: float = typer.Option(
-        1e-4, "--parity-rtol", help="Relative tolerance for parity check."
-    ),
-    validate: bool = typer.Option(
-        False,
-        "--validate",
-        help="Validate resulting ONNX with onnx + onnxruntime.",
+        help=PARITY_INPUT_HELP,
     ),
 ) -> None:
     """Convert a PyTorch model to ONNX.
@@ -327,8 +323,6 @@ def pytorch_cmd(
         ONNX opset version used for export.
     allow_unsafe : bool, default=False
         Whether to allow pickle-based fallback loading.
-    validate : bool, default=False
-        Whether to validate the generated ONNX model.
 
     Notes
     -----
@@ -347,7 +341,7 @@ def pytorch_cmd(
     if quantize_dynamic:
         _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
     if optimize:
-        _require_deps([MissingDep("onnxoptimizer", "runtime", "ONNX graph optimization")])
+        _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
     metadata_payload = _parse_metadata(metadata)
 
@@ -375,13 +369,10 @@ def pytorch_cmd(
             kwargs["metadata"] = metadata_payload
         if parity_input is not None:
             kwargs["parity_input_path"] = parity_input
-            kwargs["parity_atol"] = parity_atol
-            kwargs["parity_rtol"] = parity_rtol
 
         out = convert_torch_file_to_onnx(
             **kwargs,
         )
-        _validate_if_requested(out, validate)
         typer.echo(f"[green]✓ Saved:[/green] {out}")
     except ConversionError as exc:
         raise typer.Exit(code=_print_conversion_error(exc, debug))
@@ -403,26 +394,26 @@ def tensorflow_cmd(
     optimize: bool = typer.Option(
         False,
         "--optimize",
-        help="Optimize ONNX graph after conversion.",
+        help=OPTIMIZE_HELP,
     ),
     quantize_dynamic: bool = typer.Option(
-        False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
+        False, "--quantize-dynamic", help=QUANTIZE_HELP
     ),
     metadata: list[str] | None = typer.Option(
-        None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
+        None, "--metadata", help=METADATA_HELP
     ),
     parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
         readable=True,
-        help="Path to .npy/.npz/.csv/.txt input batch for parity check.",
+        help=PARITY_INPUT_HELP,
     ),
     parity_atol: float = typer.Option(
         1e-5, "--parity-atol", help="Absolute tolerance for parity check."
     ),
     parity_rtol: float = typer.Option(
-        1e-4, "--parity-rtol", help="Relative tolerance for parity check."
+        1e-4, "--parity-rtol", help=PARITY_RTOL_HELP
     ),
     validate: bool = typer.Option(
         False, "--validate", help="Validate resulting ONNX with onnx + onnxruntime."
@@ -458,7 +449,7 @@ def tensorflow_cmd(
     if quantize_dynamic:
         _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
     if optimize:
-        _require_deps([MissingDep("onnxoptimizer", "runtime", "ONNX graph optimization")])
+        _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
     metadata_payload = _parse_metadata(metadata)
 
@@ -514,13 +505,13 @@ def sklearn_cmd(
     optimize: bool = typer.Option(
         False,
         "--optimize",
-        help="Optimize ONNX graph after conversion.",
+        help=OPTIMIZE_HELP,
     ),
     quantize_dynamic: bool = typer.Option(
-        False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
+        False, "--quantize-dynamic", help=QUANTIZE_HELP
     ),
     metadata: list[str] | None = typer.Option(
-        None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
+        None, "--metadata", help=METADATA_HELP
     ),
     parity_input: Path | None = typer.Option(
         None,
@@ -533,7 +524,7 @@ def sklearn_cmd(
         1e-5, "--parity-atol", help="Absolute tolerance for parity check."
     ),
     parity_rtol: float = typer.Option(
-        1e-4, "--parity-rtol", help="Relative tolerance for parity check."
+        1e-4, "--parity-rtol", help=PARITY_RTOL_HELP
     ),
     validate: bool = typer.Option(
         False, "--validate", help="Validate resulting ONNX with onnx + onnxruntime."
@@ -576,7 +567,7 @@ def sklearn_cmd(
     if quantize_dynamic:
         _require_deps([MissingDep("onnxruntime", "runtime", "dynamic quantization")])
     if optimize:
-        _require_deps([MissingDep("onnxoptimizer", "runtime", "ONNX graph optimization")])
+        _require_deps([MissingDep("onnxoptimizer", "runtime", OPTIMIZE_PURPOSE)])
 
     if custom_converter_module:
         _import_custom_module(custom_converter_module)
@@ -644,26 +635,20 @@ def custom_cmd(
     optimize: bool = typer.Option(
         False,
         "--optimize",
-        help="Optimize ONNX graph after conversion.",
+        help=OPTIMIZE_HELP,
     ),
     quantize_dynamic: bool = typer.Option(
-        False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
+        False, "--quantize-dynamic", help=QUANTIZE_HELP
     ),
     metadata: list[str] | None = typer.Option(
-        None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
+        None, "--metadata", help=METADATA_HELP
     ),
     parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
         readable=True,
-        help="Path to .npy/.npz/.csv/.txt input batch for parity check.",
-    ),
-    parity_atol: float = typer.Option(
-        1e-5, "--parity-atol", help="Absolute tolerance for parity check."
-    ),
-    parity_rtol: float = typer.Option(
-        1e-4, "--parity-rtol", help="Relative tolerance for parity check."
+        help=PARITY_INPUT_HELP,
     ),
     option: list[str] | None = typer.Option(
         None,
@@ -684,8 +669,6 @@ def custom_cmd(
     option_payload["metadata"] = metadata_payload
     if parity_input is not None:
         option_payload["parity_input_path"] = parity_input
-        option_payload["parity_atol"] = parity_atol
-        option_payload["parity_rtol"] = parity_rtol
 
     try:
         from onnx_converter.api import convert_custom_file_to_onnx
@@ -699,7 +682,7 @@ def custom_cmd(
             options=option_payload,
         )
         typer.echo(f"[green]✓ Saved:[/green] {out}")
-    except (ConversionError, PluginError) as exc:
+    except ConversionError as exc:
         raise typer.Exit(code=_print_conversion_error(exc, debug))
     except Exception as exc:
         raise typer.Exit(code=_print_conversion_error(exc, debug))

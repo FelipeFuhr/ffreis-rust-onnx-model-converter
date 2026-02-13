@@ -29,7 +29,7 @@ def _to_prob_matrix(raw_output: object, class_labels: np.ndarray) -> np.ndarray:
     return np.asarray(raw_output, dtype=np.float32)
 
 
-def _build_pipeline(c_value: float) -> Pipeline:
+def _build_pipeline(c_value: float, memory: str | None = None) -> Pipeline:
     return Pipeline(
         [
             ("scale", StandardScaler()),
@@ -42,7 +42,8 @@ def _build_pipeline(c_value: float) -> Pipeline:
                     random_state=42,
                 ),
             ),
-        ]
+        ],
+        memory=memory,
     )
 
 
@@ -50,6 +51,7 @@ def main() -> None:
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     onnx_path = output_dir / "optuna_logreg.onnx"
+    cache_dir = output_dir / "optuna_pipeline_cache"
 
     X, y = load_iris(return_X_y=True)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -62,7 +64,7 @@ def main() -> None:
 
     def objective(trial: optuna.Trial) -> float:
         c_value = trial.suggest_float("C", 1e-2, 10.0, log=True)
-        pipeline = _build_pipeline(c_value)
+        pipeline = _build_pipeline(c_value, memory=str(cache_dir))
         pipeline.fit(X_train, y_train)
         preds = pipeline.predict(X_test)
         return accuracy_score(y_test, preds)
@@ -74,7 +76,7 @@ def main() -> None:
     best_c = float(study.best_params["C"])
     print(f"Best C: {best_c:.6f} (accuracy={study.best_value:.4f})")
 
-    final_model = _build_pipeline(best_c)
+    final_model = _build_pipeline(best_c, memory=str(cache_dir))
     final_model.fit(X_train, y_train)
 
     initial_types = [("input", FloatTensorType([None, X.shape[1]]))]

@@ -19,7 +19,6 @@ class ConverterPlugin(Protocol):
         self,
         model_path: Path,
         model_type: str | None,
-        options: PluginOptions,
     ) -> bool:
         """Check whether plugin can convert the given model.
 
@@ -29,8 +28,6 @@ class ConverterPlugin(Protocol):
             Path to the model artifact.
         model_type : str | None
             Optional model family hint supplied by caller.
-        options : Mapping[str, Any]
-            Raw plugin options.
 
         Returns
         -------

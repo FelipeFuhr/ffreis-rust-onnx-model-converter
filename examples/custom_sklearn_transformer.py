@@ -24,14 +24,14 @@ class MultiplyByConstant(BaseEstimator, TransformerMixin):
     def __init__(self, factor: float = 1.0) -> None:
         self.factor = factor
 
-    def fit(self, X: Any, y: Any = None) -> "MultiplyByConstant":
+    def fit(self, X: Any, _y: Any = None) -> "MultiplyByConstant":
         """No-op fit for estimator compatibility.
 
         Parameters
         ----------
         X
             Training features.
-        y, optional
+        _y, optional
             Target values.
 
         Returns
