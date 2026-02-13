@@ -206,7 +206,7 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
     mock_converter_dependencies(monkeypatch, framework="torch")
 
-    out = api_module.convert_torch_file_to_onnx(
+    result = api_module.convert_torch_file_to_onnx(
         model_path=model_path,
         output_path=output_path,
         input_shape=(1, 3),
@@ -214,5 +214,5 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(
         allow_unsafe=True,
     )
 
-    assert out == output_path
+    assert result == output_path
     assert called["weights_only"] == [True, False]
