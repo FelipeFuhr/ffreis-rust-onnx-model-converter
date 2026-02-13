@@ -5,6 +5,7 @@ import types
 from typing import Any
 
 import pytest
+
 import onnx_converter
 from onnx_converter import api as api_module
 
@@ -62,7 +63,8 @@ def test_convert_tf_path_loads_file(tmp_path, monkeypatch) -> None:
 
     # Mock the converter to avoid importing real tf2onnx
     def fake_convert(**kwargs: Any) -> str:
-        # For regular files, the loader should load the model (checking for "loaded:" prefix)
+        # For regular files, the loader should load the model
+        # (checking for "loaded:" prefix)
         assert kwargs["model"] == f"loaded:{model_path}"
         return str(output_path)
 

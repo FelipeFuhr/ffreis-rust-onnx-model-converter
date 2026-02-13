@@ -24,17 +24,16 @@ Install everything:
 
 from __future__ import annotations
 
+import sys
 import traceback
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-import sys
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any
 
 import typer
 
-from onnx_converter.errors import ConversionError
-from onnx_converter.errors import PluginError
-
+from onnx_converter.errors import ConversionError, PluginError
 
 app = typer.Typer(
     name="convert-to-onnx",
@@ -123,24 +122,12 @@ def _import_custom_module(module_or_path: str) -> None:
     typer.BadParameter
         If the module cannot be loaded or imported.
     """
-    import importlib
-    import importlib.util
-
-    candidate = Path(module_or_path)
-    if candidate.exists():
-        spec = importlib.util.spec_from_file_location(candidate.stem, candidate)
-        if spec is None or spec.loader is None:
-            raise typer.BadParameter(f"Unable to load module from {candidate}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return
+    from onnx_converter.plugins.registry import _import_module_or_path
 
     try:
-        importlib.import_module(module_or_path)
-    except Exception as exc:
-        raise typer.BadParameter(
-            f"Unable to import module '{module_or_path}': {exc}"
-        ) from exc
+        _import_module_or_path(module_or_path)
+    except PluginError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _print_conversion_error(exc: Exception, debug: bool) -> int:
@@ -168,7 +155,7 @@ def _print_conversion_error(exc: Exception, debug: bool) -> int:
     return 1
 
 
-def _parse_metadata(metadata_items: Optional[list[str]]) -> dict[str, str]:
+def _parse_metadata(metadata_items: list[str] | None) -> dict[str, str]:
     """Parse repeated KEY=VALUE metadata entries."""
     parsed: dict[str, str] = {}
     for item in metadata_items or []:
@@ -197,7 +184,7 @@ def _coerce_option_value(raw: str) -> object:
         return raw
 
 
-def _parse_model_options(option_items: Optional[list[str]]) -> dict[str, object]:
+def _parse_model_options(option_items: list[str] | None) -> dict[str, object]:
     """Parse repeatable KEY=VALUE options for custom plugin command."""
     parsed: dict[str, object] = {}
     for item in option_items or []:
@@ -280,10 +267,10 @@ def pytorch_cmd(
         help="Input shape as repeated ints. Example: --input-shape 1 3 224 224",
     ),
     opset_version: int = typer.Option(14, "--opset-version", help="ONNX opset version."),
-    input_names: Optional[list[str]] = typer.Option(
+    input_names: list[str] | None = typer.Option(
         None, "--input-name", help="Input tensor name (repeatable)."
     ),
-    output_names: Optional[list[str]] = typer.Option(
+    output_names: list[str] | None = typer.Option(
         None, "--output-name", help="Output tensor name (repeatable)."
     ),
     dynamic_batch: bool = typer.Option(
@@ -302,10 +289,10 @@ def pytorch_cmd(
     quantize_dynamic: bool = typer.Option(
         False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
     ),
-    metadata: Optional[list[str]] = typer.Option(
+    metadata: list[str] | None = typer.Option(
         None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
     ),
-    parity_input: Optional[Path] = typer.Option(
+    parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
@@ -421,10 +408,10 @@ def tensorflow_cmd(
     quantize_dynamic: bool = typer.Option(
         False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
     ),
-    metadata: Optional[list[str]] = typer.Option(
+    metadata: list[str] | None = typer.Option(
         None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
     ),
-    parity_input: Optional[Path] = typer.Option(
+    parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
@@ -514,7 +501,7 @@ def sklearn_cmd(
     ),
     output_path: Path = typer.Argument(..., help="Where to write the .onnx file."),
     n_features: int = typer.Option(..., "--n-features", min=1, help="Number of input features."),
-    custom_converter_module: Optional[str] = typer.Option(
+    custom_converter_module: str | None = typer.Option(
         None,
         "--custom-converter-module",
         help="Python module or file path that registers custom skl2onnx converters.",
@@ -532,10 +519,10 @@ def sklearn_cmd(
     quantize_dynamic: bool = typer.Option(
         False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
     ),
-    metadata: Optional[list[str]] = typer.Option(
+    metadata: list[str] | None = typer.Option(
         None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
     ),
-    parity_input: Optional[Path] = typer.Option(
+    parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
@@ -635,20 +622,20 @@ def custom_cmd(
         help="Path to model artifact handled by a plugin.",
     ),
     output_path: Path = typer.Argument(..., help="Where to write the .onnx file."),
-    model_type: Optional[str] = typer.Option(
+    model_type: str | None = typer.Option(
         None,
         "--model-type",
         help="Optional model family hint (e.g. autosklearn).",
     ),
-    plugin_name: Optional[str] = typer.Option(
+    plugin_name: str | None = typer.Option(
         None, "--plugin-name", help="Explicit plugin name."
     ),
-    plugin_module: Optional[list[str]] = typer.Option(
+    plugin_module: list[str] | None = typer.Option(
         None,
         "--plugin-module",
         help="Plugin module import path or file path (repeatable).",
     ),
-    n_features: Optional[int] = typer.Option(
+    n_features: int | None = typer.Option(
         None, "--n-features", help="Input features (used by sklearn-like plugins)."
     ),
     allow_unsafe: bool = typer.Option(
@@ -662,10 +649,10 @@ def custom_cmd(
     quantize_dynamic: bool = typer.Option(
         False, "--quantize-dynamic", help="Apply ONNX Runtime dynamic quantization."
     ),
-    metadata: Optional[list[str]] = typer.Option(
+    metadata: list[str] | None = typer.Option(
         None, "--metadata", help="Custom ONNX metadata KEY=VALUE (repeatable)."
     ),
-    parity_input: Optional[Path] = typer.Option(
+    parity_input: Path | None = typer.Option(
         None,
         "--parity-input",
         exists=True,
@@ -678,7 +665,7 @@ def custom_cmd(
     parity_rtol: float = typer.Option(
         1e-4, "--parity-rtol", help="Relative tolerance for parity check."
     ),
-    option: Optional[list[str]] = typer.Option(
+    option: list[str] | None = typer.Option(
         None,
         "--option",
         help="Plugin option KEY=VALUE (repeatable).",
