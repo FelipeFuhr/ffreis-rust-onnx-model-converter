@@ -14,4 +14,4 @@ RUN apt-get update && \
 
 USER appuser:appgroup
 ENV AUTOSKLEARN_FLAVOR=2
-ENTRYPOINT ["python3.11", "examples/autosklearn_roundtrip.py"]
+ENTRYPOINT ["python3", "examples/autosklearn_roundtrip.py"]

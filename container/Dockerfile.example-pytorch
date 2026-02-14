@@ -4,4 +4,4 @@ RUN uv pip install --system --editable ".[runtime]" && \
     uv pip install --system --index-url https://download.pytorch.org/whl/cpu "torch>=2.0.0"
 
 USER appuser:appgroup
-ENTRYPOINT ["python3.11", "examples/pytorch_example.py"]
+ENTRYPOINT ["python3", "examples/pytorch_example.py"]

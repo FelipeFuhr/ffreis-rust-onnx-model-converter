@@ -3,4 +3,4 @@ FROM onnx-converter/examples-base:local
 RUN uv pip install --system --editable ".[cli,sklearn,runtime]"
 
 USER appuser:appgroup
-ENTRYPOINT ["python3.11", "examples/sklearn_custom_cli_example.py"]
+ENTRYPOINT ["python3", "examples/sklearn_custom_cli_example.py"]

@@ -23,7 +23,7 @@ COPY pyproject.toml uv.lock ./
 RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1) \
  && uv venv /opt/venv --python python3 \
  && . /opt/venv/bin/activate \
- && uv sync --extra ${EXTRAS}
+ && uv sync --active --no-install-project --extra ${EXTRAS}
 
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"

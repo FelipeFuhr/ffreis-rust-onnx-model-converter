@@ -5,11 +5,13 @@ WORKDIR /app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      python3.11 \
-      python3.11-venv \
+      python3 \
+      python3-venv \
       python3-pip \
       ca-certificates && \
-    python3.11 -m pip install --no-cache-dir --upgrade pip uv && \
+    python3 -m venv /opt/uv-bootstrap && \
+    /opt/uv-bootstrap/bin/pip install --no-cache-dir --upgrade pip uv && \
+    ln -sf /opt/uv-bootstrap/bin/uv /usr/local/bin/uv && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --chown=appuser:appgroup --chmod=0444 . /app
