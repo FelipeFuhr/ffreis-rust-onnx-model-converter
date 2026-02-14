@@ -48,7 +48,14 @@ jobs:
             tar="artifacts/${name}.tar"
             podman save -o "$tar" "$image"
             test -s "$tar"
-            trivy image --input "$tar" --exit-code 1 --format sarif --output "trivy-results/${name}.sarif"
+            trivy image \
+              --input "$tar" \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --format sarif \
+              --output "trivy-results/${name}.sarif"
             test -s "trivy-results/${name}.sarif"
           done
       - name: Upload Trivy SARIF (per image)

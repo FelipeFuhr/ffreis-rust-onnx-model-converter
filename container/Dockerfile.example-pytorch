@@ -1,6 +1,7 @@
 FROM onnx-converter/examples-base:local
 
 RUN uv pip install --python /opt/examples-venv/bin/python ".[runtime]" && \
+    uv pip install --python /opt/examples-venv/bin/python "onnxscript>=0.1.0" && \
     uv pip install --python /opt/examples-venv/bin/python --index-url https://download.pytorch.org/whl/cpu "torch>=2.0.0"
 
 USER appuser:appgroup

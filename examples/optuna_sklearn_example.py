@@ -37,7 +37,7 @@ def _build_pipeline(c_value: float, memory: str | None = None) -> Pipeline:
                 "clf",
                 LogisticRegression(
                     C=c_value,
-                    solver="liblinear",
+                    solver="lbfgs",
                     max_iter=200,
                     random_state=42,
                 ),

@@ -1,7 +1,11 @@
 FROM ffreis/base-runner:local
 
+ARG PYTHON_VERSION=3.12
+
 USER root
 WORKDIR /app
+
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -11,8 +15,9 @@ RUN apt-get update && \
       ca-certificates && \
     python3 -m venv /opt/uv-bootstrap && \
     /opt/uv-bootstrap/bin/pip install --no-cache-dir --upgrade pip uv && \
-    python3 -m venv /opt/examples-venv && \
-    chown -R appuser:appgroup /opt/examples-venv && \
+    /opt/uv-bootstrap/bin/uv python install ${PYTHON_VERSION} && \
+    /opt/uv-bootstrap/bin/uv venv /opt/examples-venv --python ${PYTHON_VERSION} && \
+    chown -R appuser:appgroup /opt/examples-venv /opt/uv-python && \
     ln -sf /opt/uv-bootstrap/bin/uv /usr/local/bin/uv && \
     rm -rf /var/lib/apt/lists/*
 
