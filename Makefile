@@ -123,7 +123,8 @@ build-base-runner: build-base ## Build base-runner image
 
 .PHONY: build-uv-venv
 build-uv-venv: build-base ## Build uv venv image
-	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.uv-builder -t $(UV_VENV_IMAGE) $(BASE_DIR)
+	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.uv-builder -t $(UV_VENV_IMAGE) $(BASE_DIR) \
+		--build-arg PYTHON_VERSION="$(PYTHON_VERSION)"
 
 .PHONY: build-package
 build-package: build-uv-venv ## Build package image (installs converter)

@@ -168,7 +168,7 @@ def test_sklearn_loader_paths_and_errors(
     with pytest.raises(Exception, match="skops is required"):
         loader.load(tmp_path / "x.skops", allow_unsafe=False)
 
-    monkeypatch.delitem(sys.modules, "joblib", raising=False)
+    monkeypatch.setitem(sys.modules, "joblib", None)
     with pytest.raises(Exception, match="joblib is required"):
         loader.load(tmp_path / "x.pkl", allow_unsafe=True)
 

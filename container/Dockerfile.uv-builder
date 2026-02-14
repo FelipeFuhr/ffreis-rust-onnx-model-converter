@@ -2,6 +2,7 @@ ARG BASE_IMAGE=localhost/ffreis/base:local
 FROM ${BASE_IMAGE}
 
 ARG EXTRAS=all
+ARG PYTHON_VERSION=3.12
 
 USER root
 
@@ -21,7 +22,8 @@ WORKDIR /tmp/project
 COPY pyproject.toml uv.lock ./
 
 RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1) \
- && uv venv /opt/venv --python python3 \
+ && uv python install ${PYTHON_VERSION} \
+ && uv venv /opt/venv --python ${PYTHON_VERSION} \
  && . /opt/venv/bin/activate \
  && uv sync --active --no-install-project --extra ${EXTRAS}
 

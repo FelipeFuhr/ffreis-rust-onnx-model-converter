@@ -143,9 +143,12 @@ def test_run_onnx_first_output_success(
     assert result.shape == (1, 2)
 
 
-def test_run_onnx_first_output_dependency_error(tmp_path: Path) -> None:
+def test_run_onnx_first_output_dependency_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Raise parity error when onnxruntime is unavailable."""
     sys.modules.pop("onnxruntime", None)
+    monkeypatch.setitem(sys.modules, "onnxruntime", None)
     with pytest.raises(ParityError, match="requires onnxruntime"):
         _run_onnx_first_output(tmp_path / "m.onnx", np.array([[1.0]], dtype=np.float32))
 
