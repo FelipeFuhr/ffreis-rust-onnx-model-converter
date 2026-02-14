@@ -52,12 +52,32 @@ jobs:
               --input "$tar" \
               --no-progress \
               --scanners vuln \
-              --severity HIGH,CRITICAL \
+              --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
               --ignore-unfixed \
-              --exit-code 1 \
+              --exit-code 0 \
               --format sarif \
               --output "trivy-results/${name}.sarif"
             test -s "trivy-results/${name}.sarif"
+
+            echo "Full vulnerability report for ${image} (all severities):"
+            trivy image \
+              --input "$tar" \
+              --no-progress \
+              --scanners vuln \
+              --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format table
+
+            echo "Gating ${image} on HIGH/CRITICAL vulnerabilities..."
+            trivy image \
+              --input "$tar" \
+              --no-progress \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --format table
           done
       - name: Upload Trivy SARIF (per image)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
