@@ -12,6 +12,7 @@ MAX_STATEMENTS = 60
 
 
 def main() -> None:
+    """Fail when orchestrator functions exceed the statement threshold."""
     tree = ast.parse(TARGET.read_text(encoding="utf-8"))
     violations: list[str] = []
     for node in tree.body:

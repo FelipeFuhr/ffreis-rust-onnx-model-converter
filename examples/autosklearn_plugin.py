@@ -22,6 +22,20 @@ class AutoSklearnPlugin:
         model_path: Path,
         model_type: str | None,
     ) -> bool:
+        """Decide whether this plugin should convert the artifact.
+
+        Parameters
+        ----------
+        model_path : Path
+            Model artifact location.
+        model_type : str | None
+            Optional explicit model family hint.
+
+        Returns
+        -------
+        bool
+            ``True`` when the artifact should be handled by this plugin.
+        """
         if model_type and model_type.lower() == "autosklearn":
             return True
         return "autosklearn" in model_path.name.lower()
@@ -32,6 +46,22 @@ class AutoSklearnPlugin:
         output_path: Path,
         options: Mapping[str, object],
     ) -> Path:
+        """Convert an AutoSklearn artifact by exporting the best estimator.
+
+        Parameters
+        ----------
+        model_path : Path
+            Serialized AutoSklearn artifact path.
+        output_path : Path
+            Destination ONNX path.
+        options : Mapping[str, object]
+            Conversion options. Requires ``n_features``.
+
+        Returns
+        -------
+        Path
+            Generated ONNX model path.
+        """
         try:
             automl = joblib.load(str(model_path))
         except Exception as exc:

@@ -20,6 +20,7 @@ def _assert_no_imports(path: Path, banned: list[str]) -> None:
 
 
 def main() -> None:
+    """Run repository architecture boundary checks."""
     cli_path = ROOT / "src/onnx_converter/cli/cli.py"
     _assert_no_imports(
         cli_path,

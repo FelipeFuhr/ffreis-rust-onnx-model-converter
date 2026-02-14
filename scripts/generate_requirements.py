@@ -20,6 +20,7 @@ def _collect_requirements() -> list[str]:
 
 
 def main() -> None:
+    """Regenerate requirements.txt from project dependency declarations."""
     reqs = _collect_requirements()
     header = [
         (

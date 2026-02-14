@@ -48,6 +48,7 @@ def _to_prob_matrix(raw: object, classes: np.ndarray) -> np.ndarray:
 
 
 def main() -> None:
+    """Train AutoSklearn, export ONNX, and validate prediction parity."""
     flavor = os.environ.get("AUTOSKLEARN_FLAVOR", "1").strip()
     if flavor not in {"1", "2"}:
         raise SystemExit("FAIL: AUTOSKLEARN_FLAVOR must be '1' or '2'.")

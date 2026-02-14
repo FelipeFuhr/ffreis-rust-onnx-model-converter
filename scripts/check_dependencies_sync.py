@@ -33,6 +33,7 @@ def _actual_requirements() -> set[str]:
 
 
 def main() -> None:
+    """Compare generated requirements against current requirements.txt."""
     expected = _expected_requirements()
     actual = _actual_requirements()
 

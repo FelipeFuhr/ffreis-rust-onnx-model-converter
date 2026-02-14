@@ -32,7 +32,7 @@ jobs:
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
       - name: Install deps (dev + framework extras)
-        run: uv sync --extra dev --extra cli --extra sklearn --extra torch --extra tensorflow
+        run: uv sync --extra dev --extra cli --extra sklearn --extra torch
 
       - name: Ensure test/runtime deps
         run: uv pip install pytest onnxruntime

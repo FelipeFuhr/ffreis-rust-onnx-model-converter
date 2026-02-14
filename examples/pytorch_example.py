@@ -26,6 +26,7 @@ class TinyNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run a forward pass through the tiny network."""
         return self.net(x)
 
 

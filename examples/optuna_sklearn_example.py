@@ -48,6 +48,7 @@ def _build_pipeline(c_value: float, memory: str | None = None) -> Pipeline:
 
 
 def main() -> None:
+    """Tune a sklearn pipeline with Optuna and validate ONNX parity."""
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     onnx_path = output_dir / "optuna_logreg.onnx"
