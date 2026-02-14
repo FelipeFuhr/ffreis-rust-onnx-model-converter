@@ -35,7 +35,7 @@ jobs:
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
       - name: Install deps (including dev tools)
-        run: uv sync --group dev
+        run: uv sync --extra dev
 
       - name: Install package extras
         if: matrix.extra != ''

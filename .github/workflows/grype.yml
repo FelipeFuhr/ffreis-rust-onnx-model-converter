@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts grype-results
 
-          images=(ffreis/base ffreis/base-builder ffreis/builder ffreis/base-runner ffreis/runner)
+          images=(ffreis/base ffreis/base-runner ffreis/onnx-converter-uv-venv ffreis/onnx-converter-package ffreis/onnx-converter-cli)
 
           for image in "${images[@]}"; do
             name="${image##*/}"
@@ -84,11 +84,13 @@ jobs:
             name="$(basename "$f" .sarif)"
             echo "Uploading $f with category grype-$name"
 
+            sarif_payload="$(gzip -c "$f" | base64 | tr -d '\n')"
+
             gh api \
               -X POST \
               /repos/${{ github.repository }}/code-scanning/sarifs \
-              -f sarif="@${f}" \
-              -f category="grype-${name}" \
+              -f sarif="${sarif_payload}" \
+              -f tool_name="grype-${name}" \
               -f commit_sha="${{ github.sha }}" \
               -f ref="${{ github.ref }}"
           done

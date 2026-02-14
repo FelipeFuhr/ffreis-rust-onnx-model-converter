@@ -47,9 +47,6 @@ jobs:
       # CLI smoke test (like running built binary)
       - name: CLI smoke test
         run: |
-          if uv run python -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('pkg') else 1)"; then
-            echo "Package import OK"
-          fi
-
-          # if you have console_script entrypoint:
-          uv run onnx-converter --help || true
+          set -euo pipefail
+          uv run python -c "import onnx_converter"
+          uv run convert-to-onnx --help

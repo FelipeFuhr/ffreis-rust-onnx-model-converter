@@ -16,24 +16,36 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [1.80.0, stable]
+        python: ["3.12", "3.11", "3.10"]
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v6
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+
+      - uses: actions/setup-python@v6
         with:
-          toolchain: ${{ matrix.rust }}
-      - name: Build
+          python-version: ${{ matrix.python }}
+
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
+        with:
+          enable-cache: true
+
+      - name: Require lock
+        run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+
+      - name: Install deps (dev)
         run: |
           set -euo pipefail
-          if [ -d app ]; then cd app; fi
-          cargo build --release
-      - name: Test
+          uv sync --extra dev
+
+      - name: Run tests
         run: |
           set -euo pipefail
-          if [ -d app ]; then cd app; fi
-          cargo test --release
+          uv run pytest -q -m "not integration"
+
+      - name: Build package artifacts
+        run: |
+          set -euo pipefail
+          uv build
 
   container-smoke:
     needs: matrix-build
