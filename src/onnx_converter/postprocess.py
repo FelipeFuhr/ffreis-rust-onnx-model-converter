@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import onnx
 
 from onnx_converter.errors import PostprocessError
+
+UTC = getattr(datetime, "UTC", timezone.utc)  # noqa: UP017
 
 
 def add_onnx_metadata(output_path: Path, metadata: Mapping[str, str]) -> None:

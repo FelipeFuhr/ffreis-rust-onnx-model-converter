@@ -5,18 +5,19 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-import joblib
 import onnx
 import pytest
-from sklearn.datasets import load_iris
-from sklearn.linear_model import LogisticRegression
 
 
 def test_cli_sklearn_roundtrip(tmp_path: Path) -> None:
     """Run a full sklearn -> ONNX conversion through the public CLI."""
+    pytest.importorskip("joblib")
     pytest.importorskip("sklearn")
     pytest.importorskip("skl2onnx")
     pytest.importorskip("onnxruntime")
+    import joblib
+    from sklearn.datasets import load_iris
+    from sklearn.linear_model import LogisticRegression
 
     X, y = load_iris(return_X_y=True)
     model = LogisticRegression(max_iter=200, random_state=42).fit(X, y)
