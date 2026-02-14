@@ -119,6 +119,7 @@ addopts = "--strict-markers --tb=short -ra --import-mode=importlib"
 markers = [
     "unit: fast, isolated unit tests",
     "integration: integration tests that may require optional deps",
+    "e2e: end-to-end tests that exercise the public CLI flow",
 ]
 
 [tool.coverage.run]

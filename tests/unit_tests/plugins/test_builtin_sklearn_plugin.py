@@ -1,3 +1,5 @@
+"""Unit tests for built-in sklearn file plugin behavior."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,15 +12,20 @@ from onnx_converter.plugins.builtins import SklearnFilePlugin
 
 
 class DummyLoader:
+    """Test double for sklearn model loading."""
+
     def __init__(self) -> None:
         self.calls: list[tuple[Path, bool]] = []
 
     def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
+        """Record load call and return placeholder model."""
         self.calls.append((model_path, allow_unsafe))
         return object()
 
 
 class DummyConverter:
+    """Test double for sklearn model conversion."""
+
     def __init__(self, out: Path) -> None:
         self.out = out
         self.calls: list[dict[str, object]] = []
@@ -29,20 +36,26 @@ class DummyConverter:
         output_path: Path,
         options: dict[str, object],
     ) -> Path:
+        """Record conversion call and return predetermined output."""
         del model
         self.calls.append({"output_path": output_path, "options": options})
         return self.out
 
 
 class DummyParity:
+    """Test double for parity checking."""
+
     def __init__(self) -> None:
         self.calls: list[object] = []
 
     def check(self, model: object, onnx_path: Path, parity: object) -> None:
+        """Record parity invocation arguments."""
         self.calls.append((model, onnx_path, parity))
 
 
 class DummyPost:
+    """Test double for post-processing pipeline."""
+
     def __init__(self) -> None:
         self.calls: list[object] = []
 
@@ -54,6 +67,7 @@ class DummyPost:
         config_metadata: dict[str, str],
         options: object,
     ) -> None:
+        """Record post-processing invocation arguments."""
         self.calls.append(
             {
                 "output_path": output_path,
@@ -66,12 +80,14 @@ class DummyPost:
 
 
 def test_requires_n_features() -> None:
+    """Require n_features option for sklearn plugin conversion."""
     plugin = SklearnFilePlugin()
     with pytest.raises(PluginError):
         plugin.convert(Path("model.joblib"), Path("out.onnx"), options={})
 
 
 def test_rejects_bad_metadata_type() -> None:
+    """Reject non-mapping metadata payloads in plugin options."""
     plugin = SklearnFilePlugin()
     with pytest.raises(PluginError):
         plugin.convert(
@@ -82,6 +98,7 @@ def test_rejects_bad_metadata_type() -> None:
 
 
 def test_rejects_non_path_parity_input() -> None:
+    """Reject parity_input_path values that are not path-like."""
     plugin = SklearnFilePlugin()
     with pytest.raises(PluginError):
         plugin.convert(
@@ -92,6 +109,7 @@ def test_rejects_non_path_parity_input() -> None:
 
 
 def test_rejects_bad_opset_type() -> None:
+    """Reject non-integer opset values in plugin options."""
     plugin = SklearnFilePlugin()
     with pytest.raises(PluginError):
         plugin.convert(
@@ -102,6 +120,7 @@ def test_rejects_bad_opset_type() -> None:
 
 
 def test_calls_adapters(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Verify plugin wires loader, converter, parity, and postprocess adapters."""
     loader = DummyLoader()
     converter = DummyConverter(out=tmp_path / "out.onnx")
     parity = DummyParity()

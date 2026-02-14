@@ -1,8 +1,10 @@
+"""Unit tests for TensorFlow conversion orchestration paths."""
+
 from __future__ import annotations
 
 import sys
 import types
-from typing import Any
+from pathlib import Path
 
 import pytest
 
@@ -29,7 +31,10 @@ def _install_dummy_tf(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "tf2onnx", types.SimpleNamespace())
 
 
-def test_convert_tf_path_uses_savedmodel_dir(tmp_path, monkeypatch) -> None:
+def test_convert_tf_path_uses_savedmodel_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pass SavedModel directory path directly into TensorFlow converter."""
     model_path = tmp_path / "saved_model"
     model_path.mkdir()
     output_path = tmp_path / "out.onnx"
@@ -37,7 +42,7 @@ def test_convert_tf_path_uses_savedmodel_dir(tmp_path, monkeypatch) -> None:
     _install_dummy_tf(monkeypatch)
 
     # Mock the converter to avoid importing real tf2onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         # For SavedModel directories, the model parameter should be the path string
         assert kwargs["model"] == str(model_path)
         return str(output_path)
@@ -54,7 +59,10 @@ def test_convert_tf_path_uses_savedmodel_dir(tmp_path, monkeypatch) -> None:
     assert out == output_path
 
 
-def test_convert_tf_path_loads_file(tmp_path, monkeypatch) -> None:
+def test_convert_tf_path_loads_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Load file-based TensorFlow model before conversion."""
     model_path = tmp_path / "model.h5"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -62,7 +70,7 @@ def test_convert_tf_path_loads_file(tmp_path, monkeypatch) -> None:
     _install_dummy_tf(monkeypatch)
 
     # Mock the converter to avoid importing real tf2onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         # For regular files, the loader should load the model
         # (checking for "loaded:" prefix)
         assert kwargs["model"] == f"loaded:{model_path}"

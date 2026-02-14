@@ -1,5 +1,10 @@
+"""Unit tests for CLI command behavior."""
+
 from __future__ import annotations
 
+from pathlib import Path
+
+import pytest
 from typer.testing import CliRunner
 
 from onnx_converter.cli import cli as cli_module
@@ -8,6 +13,7 @@ runner = CliRunner()
 
 
 def test_help_shows_commands() -> None:
+    """Ensure top-level help lists expected conversion subcommands."""
     result = runner.invoke(cli_module.app, ["--help"])
     assert result.exit_code == 0
     assert "pytorch" in result.output
@@ -15,7 +21,10 @@ def test_help_shows_commands() -> None:
     assert "sklearn" in result.output
 
 
-def test_pytorch_missing_deps(tmp_path, monkeypatch) -> None:
+def test_pytorch_missing_deps(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ensure missing optional deps surface a user-facing CLI error."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -43,24 +52,27 @@ def test_pytorch_missing_deps(tmp_path, monkeypatch) -> None:
     assert "Missing optional dependencies" in result.output
 
 
-def test_pytorch_invokes_api(tmp_path, monkeypatch) -> None:
+def test_pytorch_invokes_api(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ensure the PyTorch CLI command forwards expected args to API layer."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
 
     monkeypatch.setattr(cli_module, "_is_importable", lambda name: True)
 
-    called = {}
+    called: dict[str, object] = {}
 
     def fake_convert(
         *,
-        model_path,
-        output_path,
-        input_shape,
-        opset_version,
-        allow_unsafe,
-        **kwargs,
-    ):
+        model_path: Path,
+        output_path: Path,
+        input_shape: tuple[int, ...],
+        opset_version: int,
+        allow_unsafe: bool,
+        **kwargs: object,
+    ) -> Path:
         called["model_path"] = model_path
         called["output_path"] = output_path
         called["input_shape"] = input_shape

@@ -46,7 +46,7 @@ jobs:
       - name: Tests
         run: |
           if find . -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
-            uv run pytest
+            uv run pytest -q -m unit
           else
             echo "No tests found."
           fi

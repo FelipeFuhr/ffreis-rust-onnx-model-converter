@@ -30,7 +30,7 @@ jobs:
       - name: Run tests
         run: |
           set -euo pipefail
-          uv run pytest -q -m "not integration"
+          uv run pytest -q -m unit
       - name: Build package artifacts
         run: |
           set -euo pipefail

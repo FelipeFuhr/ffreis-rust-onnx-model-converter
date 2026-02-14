@@ -1,23 +1,25 @@
-name: Integration Tests
+name: E2E Tests
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 7 * * 1"
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  integration:
+  e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -28,8 +30,8 @@ jobs:
       - name: Require uv.lock
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev + all)
-        run: uv sync --extra dev --extra all
+      - name: Install deps (dev + cli + sklearn + runtime)
+        run: uv sync --extra dev --extra cli --extra sklearn --extra runtime
 
-      - name: Run integration tests
-        run: uv run pytest -m "integration and not e2e" -q
+      - name: Run e2e tests
+        run: uv run pytest -q -m e2e

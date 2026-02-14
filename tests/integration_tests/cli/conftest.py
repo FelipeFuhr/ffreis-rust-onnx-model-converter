@@ -1,0 +1,1 @@
+"""Integration CLI pytest configuration."""

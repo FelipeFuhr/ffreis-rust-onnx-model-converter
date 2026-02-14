@@ -1,6 +1,10 @@
+"""Unit tests for adapter contract behavior."""
+
 from __future__ import annotations
 
 from pathlib import Path
+
+import pytest
 
 from onnx_converter.adapters.converters import (
     SklearnModelConverter,
@@ -9,11 +13,14 @@ from onnx_converter.adapters.converters import (
 )
 
 
-def test_torch_adapter_roundtrip_contract(monkeypatch, tmp_path: Path) -> None:
+def test_torch_adapter_roundtrip_contract(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Ensure Torch adapter forwards expected arguments and output path."""
     out = tmp_path / "out.onnx"
-    called = {}
+    called: dict[str, object] = {}
 
-    def fake_convert(**kwargs):
+    def fake_convert(**kwargs: object) -> str:
         called.update(kwargs)
         return str(out)
 
@@ -38,11 +45,14 @@ def test_torch_adapter_roundtrip_contract(monkeypatch, tmp_path: Path) -> None:
     assert called["input_shape"] == (1, 4)
 
 
-def test_tensorflow_adapter_roundtrip_contract(monkeypatch, tmp_path: Path) -> None:
+def test_tensorflow_adapter_roundtrip_contract(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Ensure TensorFlow adapter forwards expected arguments and output path."""
     out = tmp_path / "out.onnx"
-    called = {}
+    called: dict[str, object] = {}
 
-    def fake_convert(**kwargs):
+    def fake_convert(**kwargs: object) -> str:
         called.update(kwargs)
         return str(out)
 
@@ -61,11 +71,14 @@ def test_tensorflow_adapter_roundtrip_contract(monkeypatch, tmp_path: Path) -> N
     assert called["opset_version"] == 14
 
 
-def test_sklearn_adapter_roundtrip_contract(monkeypatch, tmp_path: Path) -> None:
+def test_sklearn_adapter_roundtrip_contract(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Ensure sklearn adapter forwards expected arguments and output path."""
     out = tmp_path / "out.onnx"
-    called = {}
+    called: dict[str, object] = {}
 
-    def fake_convert(**kwargs):
+    def fake_convert(**kwargs: object) -> str:
         called.update(kwargs)
         return str(out)
 

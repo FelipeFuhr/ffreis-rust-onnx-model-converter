@@ -1,7 +1,8 @@
+"""Unit tests for application use-case contracts."""
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -15,11 +16,11 @@ from onnx_converter.errors import ParityError
 
 
 class _Loader:
-    def __init__(self, model: Any) -> None:
+    def __init__(self, model: object) -> None:
         self.model = model
         self.calls: list[tuple[Path, bool]] = []
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> Any:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
         self.calls.append((model_path, allow_unsafe))
         return self.model
 
@@ -29,7 +30,9 @@ class _Converter:
         self.output_path = output_path
         self.calls = 0
 
-    def convert(self, model: Any, output_path: Path, options: dict[str, Any]) -> Path:
+    def convert(
+        self, model: object, output_path: Path, options: dict[str, object]
+    ) -> Path:
         self.calls += 1
         assert model is not None
         assert output_path == self.output_path
@@ -43,7 +46,11 @@ class _Parity:
         self.calls = 0
 
     def check(
-        self, model: Any, onnx_path: Path, parity: Any, context: Any = None
+        self,
+        model: object,
+        onnx_path: Path,
+        parity: object,
+        context: object | None = None,
     ) -> None:
         self.calls += 1
         del model, onnx_path, parity, context
@@ -61,7 +68,7 @@ class _Postprocess:
         source_path: Path,
         framework: str,
         config_metadata: dict[str, str],
-        options: Any,
+        options: object,
     ) -> None:
         self.calls += 1
         assert output_path
@@ -72,6 +79,7 @@ class _Postprocess:
 
 
 def test_torch_use_case_roundtrip_contract(tmp_path: Path) -> None:
+    """Verify torch use-case orchestrates loader, converter, parity, and postprocess."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -99,6 +107,7 @@ def test_torch_use_case_roundtrip_contract(tmp_path: Path) -> None:
 
 
 def test_tensorflow_use_case_parity_failure_is_deterministic(tmp_path: Path) -> None:
+    """Verify TensorFlow use-case propagates parity failures deterministically."""
     model_path = tmp_path / "model.h5"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -116,6 +125,7 @@ def test_tensorflow_use_case_parity_failure_is_deterministic(tmp_path: Path) -> 
 
 
 def test_sklearn_use_case_metadata_path_contract(tmp_path: Path) -> None:
+    """Verify sklearn use-case returns expected source path and framework metadata."""
     model_path = tmp_path / "model.skops"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"

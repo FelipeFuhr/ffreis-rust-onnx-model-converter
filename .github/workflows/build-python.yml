@@ -38,7 +38,7 @@ jobs:
         run: uv sync --extra dev --extra cli
 
       - name: Run tests
-        run: uv run pytest -q -m "not integration"
+        run: uv run pytest -q -m unit
 
       # Equivalent to `cargo build --release`
       - name: Build package artifacts

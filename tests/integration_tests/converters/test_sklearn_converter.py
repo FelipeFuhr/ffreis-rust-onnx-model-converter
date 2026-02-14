@@ -1,9 +1,14 @@
+"""Integration tests for the sklearn converter backend."""
+
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
 
-def test_sklearn_convert(tmp_path) -> None:
+def test_sklearn_convert(tmp_path: Path) -> None:
+    """Convert a fitted sklearn estimator and verify ONNX output exists."""
     pytest.importorskip("sklearn")
     pytest.importorskip("skl2onnx")
     pytest.importorskip("onnxruntime")
