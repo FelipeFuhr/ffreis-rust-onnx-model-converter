@@ -50,6 +50,7 @@ jobs:
             test -s "$tar"
             trivy image \
               --input "$tar" \
+              --no-progress \
               --scanners vuln \
               --severity HIGH,CRITICAL \
               --ignore-unfixed \
