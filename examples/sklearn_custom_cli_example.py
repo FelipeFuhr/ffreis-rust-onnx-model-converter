@@ -6,7 +6,6 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from importlib import util
 from pathlib import Path
 
 import joblib
@@ -20,38 +19,20 @@ from sklearn.pipeline import Pipeline
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def _load_transformer_class() -> type:
-    """Load ``MultiplyByConstant`` from the custom transformer module."""
-    module_name = "examples.custom_sklearn_transformer"
-    if module_name in sys.modules:
-        module = sys.modules[module_name]
-        return module.MultiplyByConstant
-
-    module_path = PROJECT_ROOT / "examples" / "custom_sklearn_transformer.py"
-    spec = util.spec_from_file_location(module_name, module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load custom module from {module_path}")
-    module = util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return module.MultiplyByConstant
-
-
-MultiplyByConstant = _load_transformer_class()
-
-
 def main() -> None:
     """Run custom-converter CLI flow with explicit pass/fail checks."""
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from examples.custom_sklearn_transformer import MultiplyByConstant
+
     X, y = load_iris(return_X_y=True)
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
-    cache_dir = output_dir / "pipeline_cache"
     pipeline = Pipeline(
         [
             ("scale", MultiplyByConstant(factor=1.5)),
             ("clf", LogisticRegression(max_iter=200)),
-        ],
-        memory=str(cache_dir),
+        ]
     )
     pipeline.fit(X, y)
 

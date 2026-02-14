@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import joblib
@@ -14,11 +15,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
-try:
-    from examples.custom_sklearn_transformer import MultiplyByConstant
-except ModuleNotFoundError:
-    from custom_sklearn_transformer import MultiplyByConstant
 from onnx_converter import convert_sklearn_to_onnx
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _to_proba_matrix(
@@ -36,6 +35,10 @@ def _to_proba_matrix(
 
 def main() -> None:
     """Run a full sklearn-vs-ONNX comparison workflow."""
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from examples.custom_sklearn_transformer import MultiplyByConstant
+
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     model_path = output_dir / "custom_sklearn.joblib"
