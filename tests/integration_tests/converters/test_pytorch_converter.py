@@ -1,10 +1,16 @@
+"""Integration tests for the PyTorch converter backend."""
+
 from __future__ import annotations
+
+from pathlib import Path
 
 import pytest
 
 
-def test_pytorch_convert(tmp_path) -> None:
+def test_pytorch_convert(tmp_path: Path) -> None:
+    """Convert a simple PyTorch module and verify ONNX output exists."""
     torch = pytest.importorskip("torch")
+    pytest.importorskip("onnxscript")
     pytest.importorskip("onnxruntime")
 
     from onnx_converter.converters.pytorch_converter import convert_pytorch_to_onnx

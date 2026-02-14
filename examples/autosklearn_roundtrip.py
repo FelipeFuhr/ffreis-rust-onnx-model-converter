@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import inspect
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -24,7 +24,8 @@ def _select_automl_class(flavor: str):
             return AutoSklearn2Classifier
         except Exception as exc:
             raise SystemExit(
-                "FAIL: autosklearn flavor=2 requested but AutoSklearn2Classifier is unavailable."
+                "FAIL: autosklearn flavor=2 requested but "
+                "AutoSklearn2Classifier is unavailable."
             ) from exc
 
     from autosklearn.classification import AutoSklearnClassifier
@@ -40,11 +41,14 @@ def _filtered_kwargs(cls: type, kwargs: dict[str, object]) -> dict[str, object]:
 
 def _to_prob_matrix(raw: object, classes: np.ndarray) -> np.ndarray:
     if isinstance(raw, list) and raw and isinstance(raw[0], dict):
-        return np.array([[row[int(cls)] for cls in classes] for row in raw], dtype=np.float32)
+        return np.array(
+            [[row[int(cls)] for cls in classes] for row in raw], dtype=np.float32
+        )
     return np.asarray(raw, dtype=np.float32)
 
 
 def main() -> None:
+    """Train AutoSklearn, export ONNX, and validate prediction parity."""
     flavor = os.environ.get("AUTOSKLEARN_FLAVOR", "1").strip()
     if flavor not in {"1", "2"}:
         raise SystemExit("FAIL: AUTOSKLEARN_FLAVOR must be '1' or '2'.")
@@ -122,18 +126,22 @@ def main() -> None:
     onnx_proba = _to_prob_matrix(outputs[1], np.asarray(reloaded.classes_))
 
     if onnx_pred.shape != sk_pred.shape or not np.array_equal(onnx_pred, sk_pred):
-        raise SystemExit("FAIL: label predictions mismatch between autosklearn and ONNX.")
+        raise SystemExit(
+            "FAIL: label predictions mismatch between autosklearn and ONNX."
+        )
 
     if onnx_proba.shape != sk_proba.shape:
         raise SystemExit(
-            f"FAIL: probability shape mismatch ({onnx_proba.shape} vs {sk_proba.shape})."
+            "FAIL: probability shape mismatch "
+            f"({onnx_proba.shape} vs {sk_proba.shape})."
         )
 
     max_abs_diff = float(np.max(np.abs(sk_proba - onnx_proba)))
     print(f"Max |proba diff|: {max_abs_diff:.8f}")
     if not np.allclose(sk_proba, onnx_proba, atol=1e-4, rtol=1e-3):
         raise SystemExit(
-            f"FAIL: probability mismatch (max_abs_diff={max_abs_diff:.8f}, atol=1e-4, rtol=1e-3)."
+            "FAIL: probability mismatch "
+            f"(max_abs_diff={max_abs_diff:.8f}, atol=1e-4, rtol=1e-3)."
         )
 
     accuracy = float((sk_pred == y_test).mean())

@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-from typing import Mapping
-from typing import Optional
-from typing import Protocol
+from typing import Any, Protocol
 
-from onnx_converter.application.options import ParityOptions
-from onnx_converter.application.options import PostprocessOptions
+from onnx_converter.application.options import ParityOptions, PostprocessOptions
 
 
 class ModelLoader(Protocol):
@@ -39,7 +36,7 @@ class ParityChecker(Protocol):
         model: Any,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Optional[Mapping[str, Any]] = None,
+        context: Mapping[str, Any] | None = None,
     ) -> None:
         """Raise on mismatch."""
 

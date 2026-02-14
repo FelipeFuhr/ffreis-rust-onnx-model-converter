@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from onnx_converter.errors import ParityError
 
+FloatArray = npt.NDArray[np.float32]
+AnyArray = npt.NDArray[Any]
 
-def load_parity_input(input_path: Path) -> np.ndarray:
+
+def load_parity_input(input_path: Path) -> FloatArray:
     """Load parity input data from .npy/.npz/.csv/.txt."""
     suffix = input_path.suffix.lower()
     if suffix == ".npy":
@@ -35,32 +39,30 @@ def load_parity_input(input_path: Path) -> np.ndarray:
     return arr
 
 
-def _run_onnx_first_output(onnx_path: Path, batch: np.ndarray) -> np.ndarray:
+def _run_onnx_first_output(onnx_path: Path, batch: FloatArray) -> FloatArray:
     try:
         import onnxruntime as ort
     except Exception as exc:
-        raise ParityError(
-            "Parity check requires onnxruntime to be installed."
-        ) from exc
+        raise ParityError("Parity check requires onnxruntime to be installed.") from exc
 
     session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
     input_name = session.get_inputs()[0].name
     output_name = session.get_outputs()[0].name
     result = session.run([output_name], {input_name: batch.astype(np.float32)})[0]
-    return np.asarray(result)
+    return np.asarray(result, dtype=np.float32)
 
 
 def check_tensor_parity(
-    expected: np.ndarray,
+    expected: FloatArray,
     onnx_path: Path,
-    parity_input: np.ndarray,
+    parity_input: FloatArray,
     atol: float,
     rtol: float,
     label: str,
 ) -> None:
     """Check allclose parity for tensor outputs."""
     actual = _run_onnx_first_output(onnx_path, parity_input)
-    expected = np.asarray(expected)
+    expected = np.asarray(expected, dtype=np.float32)
     if expected.shape != actual.shape:
         raise ParityError(
             f"{label} parity failed: shape mismatch "
@@ -74,7 +76,7 @@ def check_tensor_parity(
         )
 
 
-def _probabilities_to_matrix(raw_probs: Any, classes: np.ndarray) -> np.ndarray:
+def _probabilities_to_matrix(raw_probs: Any, classes: AnyArray) -> FloatArray:
     """Normalize various ONNX classifier probability encodings."""
     if isinstance(raw_probs, list) and raw_probs and isinstance(raw_probs[0], dict):
         return np.array(
@@ -86,7 +88,7 @@ def _probabilities_to_matrix(raw_probs: Any, classes: np.ndarray) -> np.ndarray:
 def check_sklearn_parity(
     model: Any,
     onnx_path: Path,
-    parity_input: np.ndarray,
+    parity_input: FloatArray,
     atol: float,
     rtol: float,
 ) -> None:
@@ -111,7 +113,9 @@ def check_sklearn_parity(
     outputs = session.run(output_names, {input_name: parity_input.astype(np.float32)})
 
     onnx_pred = np.asarray(outputs[0])
-    if onnx_pred.shape != sklearn_pred.shape or not np.array_equal(onnx_pred, sklearn_pred):
+    if onnx_pred.shape != sklearn_pred.shape or not np.array_equal(
+        onnx_pred, sklearn_pred
+    ):
         raise ParityError("Sklearn parity failed: predicted labels differ.")
 
     if sklearn_proba is not None and len(outputs) > 1:

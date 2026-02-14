@@ -1,9 +1,11 @@
+"""Unit tests for PyTorch conversion orchestration paths."""
+
 from __future__ import annotations
 
 import sys
 import types
 from collections.abc import Callable
-from typing import Any
+from pathlib import Path
 
 import pytest
 
@@ -21,7 +23,7 @@ class _DummyModel:
 class _MockConverter:
     """Mock converter for testing."""
 
-    def convert(self, model: Any, output_path: Any, options: Any) -> Any:
+    def convert(self, model: object, output_path: Path, options: object) -> Path:
         return output_path
 
 
@@ -32,7 +34,7 @@ class _MockParity:
         self.calls = 0
 
     def check(
-        self, model: Any, onnx_path: Any, parity: Any, context: Any = None
+        self, model: object, onnx_path: Path, parity: object, context: object = None
     ) -> None:
         self.calls += 1
         del model, onnx_path, parity, context
@@ -46,11 +48,11 @@ class _MockPostprocess:
 
     def run(
         self,
-        output_path: Any,
-        source_path: Any,
+        output_path: Path,
+        source_path: Path,
         framework: str,
-        config_metadata: Any,
-        options: Any,
+        config_metadata: dict[str, str],
+        options: object,
     ) -> None:
         self.calls += 1
         del output_path, source_path, framework, config_metadata, options
@@ -58,19 +60,21 @@ class _MockPostprocess:
 
 def _install_dummy_torch(
     monkeypatch: pytest.MonkeyPatch,
-    jit_load: Callable[[str], Any],
-    load: Callable[..., Any],
+    jit_load: Callable[[str], object],
+    load: Callable[..., object],
 ) -> None:
     dummy_torch = types.SimpleNamespace()
 
     class _Jit:
         @staticmethod
-        def load(path: str) -> Any:
+        def load(path: str) -> object:
             return jit_load(path)
 
     dummy_torch.jit = _Jit
 
-    def _load(path: str, map_location: Any = None, weights_only: Any = None) -> Any:
+    def _load(
+        path: str, map_location: object = None, weights_only: object = None
+    ) -> object:
         return load(path, map_location=map_location, weights_only=weights_only)
 
     dummy_torch.load = _load
@@ -78,26 +82,29 @@ def _install_dummy_torch(
     monkeypatch.setitem(sys.modules, "torch", dummy_torch)
 
 
-def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
+def test_convert_torch_file_prefers_torchscript(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Prefer TorchScript loading over torch.load when available."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
 
-    jit_load_called = []
+    jit_load_called: list[bool] = []
 
     def jit_load(_path: str) -> _DummyModel:
         jit_load_called.append(True)
         return _DummyModel()
 
     def load(
-        _path: str, map_location: Any = None, weights_only: Any = None
+        _path: str, map_location: object = None, weights_only: object = None
     ) -> _DummyModel:
         raise AssertionError("torch.load should not be called")
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
     # Mock the converter to avoid importing real torch.onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         assert kwargs["input_shape"] == (1, 3)
         return str(output_path)
 
@@ -116,7 +123,10 @@ def test_convert_torch_file_prefers_torchscript(tmp_path, monkeypatch) -> None:
     assert len(jit_load_called) == 1
 
 
-def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None:
+def test_convert_torch_file_requires_allow_unsafe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Raise conversion error when only unsafe loading path is available."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -125,14 +135,14 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
         raise RuntimeError("fail")
 
     def load(
-        _path: str, map_location: Any = None, weights_only: Any = None
+        _path: str, map_location: object = None, weights_only: object = None
     ) -> _DummyModel:
         raise RuntimeError("safe load failed")
 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
     # Mock the converter to avoid importing real torch.onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         return str(output_path)
 
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
@@ -148,7 +158,10 @@ def test_convert_torch_file_requires_allow_unsafe(tmp_path, monkeypatch) -> None
         )
 
 
-def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) -> None:
+def test_convert_torch_file_uses_torch_load_when_allowed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Use safe torch.load fallback when unsafe mode is enabled."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -156,10 +169,10 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
     def jit_load(_path: str) -> _DummyModel:
         raise RuntimeError("fail")
 
-    called = {}
+    called: dict[str, object] = {}
 
     def load(
-        _path: str, map_location: Any = None, weights_only: Any = None
+        _path: str, map_location: object = None, weights_only: object = None
     ) -> _DummyModel:
         called["weights_only"] = weights_only
         return _DummyModel()
@@ -167,7 +180,7 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
     _install_dummy_torch(monkeypatch, jit_load, load)
 
     # Mock the converter to avoid importing real torch.onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         return str(output_path)
 
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)
@@ -186,8 +199,9 @@ def test_convert_torch_file_uses_torch_load_when_allowed(tmp_path, monkeypatch) 
 
 
 def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(
-    tmp_path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Attempt safe load first, then unsafe load when explicitly allowed."""
     model_path = tmp_path / "model.pt"
     model_path.write_text("dummy")
     output_path = tmp_path / "out.onnx"
@@ -195,10 +209,10 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(
     def jit_load(_path: str) -> _DummyModel:
         raise RuntimeError("fail")
 
-    called = {"weights_only": []}
+    called: dict[str, list[object]] = {"weights_only": []}
 
     def load(
-        _path: str, map_location: Any = None, weights_only: Any = None
+        _path: str, map_location: object = None, weights_only: object = None
     ) -> _DummyModel:
         called["weights_only"].append(weights_only)
         if weights_only is True:
@@ -208,7 +222,7 @@ def test_convert_torch_file_falls_back_to_unsafe_only_when_allowed(
     _install_dummy_torch(monkeypatch, jit_load, load)
 
     # Mock the converter to avoid importing real torch.onnx
-    def fake_convert(**kwargs: Any) -> str:
+    def fake_convert(**kwargs: object) -> str:
         return str(output_path)
 
     monkeypatch.setattr(onnx_converter, "convert_pytorch_to_onnx", fake_convert)

@@ -11,4 +11,7 @@ WORKDIR /app
 COPY --chown=appuser:appgroup pyproject.toml README.md convert_to_onnx.py /app/
 COPY --chown=appuser:appgroup src /app/src
 
+USER root
 RUN uv pip install --python /opt/venv/bin/python ".[${EXTRAS}]"
+RUN chown -R appuser:appgroup /app /opt/venv
+USER appuser:appgroup

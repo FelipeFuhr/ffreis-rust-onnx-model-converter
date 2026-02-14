@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class ParityOptions:
     """Parity check configuration."""
 
-    input_path: Optional[Path] = None
+    input_path: Path | None = None
     atol: float = 1e-5
     rtol: float = 1e-4
 
@@ -23,7 +22,7 @@ class PostprocessOptions:
 
     optimize: bool = False
     quantize_dynamic: bool = False
-    metadata: Optional[Mapping[str, str]] = None
+    metadata: Mapping[str, str] | None = None
 
 
 @dataclass(frozen=True)

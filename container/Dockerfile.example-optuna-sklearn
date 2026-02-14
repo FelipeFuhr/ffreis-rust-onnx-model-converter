@@ -1,6 +1,6 @@
 FROM onnx-converter/examples-base:local
 
-RUN uv pip install --system --editable ".[cli,sklearn,runtime,optuna]"
+RUN uv pip install --python /opt/examples-venv/bin/python ".[cli,sklearn,runtime,optuna]"
 
 USER appuser:appgroup
-ENTRYPOINT ["python3.11", "examples/optuna_sklearn_example.py"]
+ENTRYPOINT ["python3", "examples/optuna_sklearn_example.py"]

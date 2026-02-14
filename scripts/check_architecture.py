@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -21,6 +20,7 @@ def _assert_no_imports(path: Path, banned: list[str]) -> None:
 
 
 def main() -> None:
+    """Run repository architecture boundary checks."""
     cli_path = ROOT / "src/onnx_converter/cli/cli.py"
     _assert_no_imports(
         cli_path,

@@ -2,36 +2,46 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Iterable
-from typing import Mapping
-from typing import Optional
 
 from pydantic import ValidationError
 
-from onnx_converter.adapters.converters import SklearnModelConverter
-from onnx_converter.adapters.converters import TensorflowModelConverter
-from onnx_converter.adapters.converters import TorchModelConverter
-from onnx_converter.adapters.loaders import SklearnModelLoader
-from onnx_converter.adapters.loaders import TensorflowModelLoader
-from onnx_converter.adapters.loaders import TorchModelLoader
-from onnx_converter.adapters.parity_checkers import SklearnParityChecker
-from onnx_converter.adapters.parity_checkers import TensorflowParityChecker
-from onnx_converter.adapters.parity_checkers import TorchParityChecker
-from onnx_converter.application.options import ConversionOptions
-from onnx_converter.application.options import ParityOptions
-from onnx_converter.application.options import PostprocessOptions
-from onnx_converter.application.ports import ModelConverter
-from onnx_converter.application.ports import ModelLoader
-from onnx_converter.application.ports import OnnxPostProcessor
-from onnx_converter.application.ports import ParityChecker
+from onnx_converter.adapters.converters import (
+    SklearnModelConverter,
+    TensorflowModelConverter,
+    TorchModelConverter,
+)
+from onnx_converter.adapters.loaders import (
+    SklearnModelLoader,
+    TensorflowModelLoader,
+    TorchModelLoader,
+)
+from onnx_converter.adapters.parity_checkers import (
+    SklearnParityChecker,
+    TensorflowParityChecker,
+    TorchParityChecker,
+)
+from onnx_converter.application.options import (
+    ConversionOptions,
+    ParityOptions,
+    PostprocessOptions,
+)
+from onnx_converter.application.ports import (
+    ModelConverter,
+    ModelLoader,
+    OnnxPostProcessor,
+    ParityChecker,
+)
 from onnx_converter.application.results import ConversionResult
 from onnx_converter.errors import ConversionError
 from onnx_converter.infrastructure.postprocessing import OnnxPostProcessorImpl
 from onnx_converter.plugins.registry import create_default_registry
-from onnx_converter.schemas import SklearnFileConversionConfig
-from onnx_converter.schemas import TensorflowFileConversionConfig
-from onnx_converter.schemas import TorchFileConversionConfig
+from onnx_converter.schemas import (
+    SklearnFileConversionConfig,
+    TensorflowFileConversionConfig,
+    TorchFileConversionConfig,
+)
 
 
 def convert_torch_file(
@@ -40,13 +50,13 @@ def convert_torch_file(
     output_path: Path,
     input_shape: Iterable[int],
     options: ConversionOptions,
-    input_names: Optional[list[str]] = None,
-    output_names: Optional[list[str]] = None,
+    input_names: list[str] | None = None,
+    output_names: list[str] | None = None,
     dynamic_batch: bool = False,
-    loader: Optional[ModelLoader] = None,
-    converter: Optional[ModelConverter] = None,
-    parity_checker: Optional[ParityChecker] = None,
-    postprocessor: Optional[OnnxPostProcessor] = None,
+    loader: ModelLoader | None = None,
+    converter: ModelConverter | None = None,
+    parity_checker: ParityChecker | None = None,
+    postprocessor: OnnxPostProcessor | None = None,
 ) -> ConversionResult:
     """Use-case: convert PyTorch artifact into ONNX."""
     try:
@@ -110,10 +120,10 @@ def convert_tensorflow_file(
     model_path: Path,
     output_path: Path,
     options: ConversionOptions,
-    loader: Optional[ModelLoader] = None,
-    converter: Optional[ModelConverter] = None,
-    parity_checker: Optional[ParityChecker] = None,
-    postprocessor: Optional[OnnxPostProcessor] = None,
+    loader: ModelLoader | None = None,
+    converter: ModelConverter | None = None,
+    parity_checker: ParityChecker | None = None,
+    postprocessor: OnnxPostProcessor | None = None,
 ) -> ConversionResult:
     """Use-case: convert TensorFlow/Keras artifact into ONNX."""
     try:
@@ -123,7 +133,9 @@ def convert_tensorflow_file(
             opset_version=options.opset_version,
         )
     except ValidationError as exc:
-        raise ConversionError(f"Invalid TensorFlow conversion parameters: {exc}") from exc
+        raise ConversionError(
+            f"Invalid TensorFlow conversion parameters: {exc}"
+        ) from exc
 
     loader = loader or TensorflowModelLoader()
     converter = converter or TensorflowModelConverter()
@@ -158,10 +170,10 @@ def convert_sklearn_file(
     output_path: Path,
     n_features: int,
     options: ConversionOptions,
-    loader: Optional[ModelLoader] = None,
-    converter: Optional[ModelConverter] = None,
-    parity_checker: Optional[ParityChecker] = None,
-    postprocessor: Optional[OnnxPostProcessor] = None,
+    loader: ModelLoader | None = None,
+    converter: ModelConverter | None = None,
+    parity_checker: ParityChecker | None = None,
+    postprocessor: OnnxPostProcessor | None = None,
 ) -> ConversionResult:
     """Use-case: convert sklearn artifact into ONNX."""
     try:
@@ -208,9 +220,9 @@ def convert_custom_file(
     *,
     model_path: Path,
     output_path: Path,
-    model_type: Optional[str],
-    plugin_name: Optional[str],
-    plugin_modules: Optional[Iterable[str]],
+    model_type: str | None,
+    plugin_name: str | None,
+    plugin_modules: Iterable[str] | None,
     options: Mapping[str, object],
 ) -> ConversionResult:
     """Use-case: resolve and run conversion plugin."""
@@ -241,8 +253,8 @@ def build_conversion_options(
     opset_version: int = 14,
     optimize: bool = False,
     quantize_dynamic: bool = False,
-    metadata: Optional[Mapping[str, str]] = None,
-    parity_input_path: Optional[Path] = None,
+    metadata: Mapping[str, str] | None = None,
+    parity_input_path: Path | None = None,
     parity_atol: float = 1e-5,
     parity_rtol: float = 1e-4,
 ) -> ConversionOptions:

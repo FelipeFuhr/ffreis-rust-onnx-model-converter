@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
 from skl2onnx import update_registered_converter
 from skl2onnx.algebra.onnx_ops import OnnxMul
 from skl2onnx.common.data_types import FloatTensorType
 from skl2onnx.common.utils import check_input_and_output_numbers
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class MultiplyByConstant(BaseEstimator, TransformerMixin):
@@ -24,7 +24,7 @@ class MultiplyByConstant(BaseEstimator, TransformerMixin):
     def __init__(self, factor: float = 1.0) -> None:
         self.factor = factor
 
-    def fit(self, X: Any, _y: Any = None) -> "MultiplyByConstant":
+    def fit(self, X: Any, _y: Any = None) -> MultiplyByConstant:
         """No-op fit for estimator compatibility.
 
         Parameters
@@ -84,7 +84,12 @@ def _converter(scope: Any, operator: Any, container: Any) -> None:
     """
     op = operator.raw_operator
     factor = np.array([op.factor], dtype=np.float32)
-    onnx_op = OnnxMul(operator.inputs[0], factor, output_names=[operator.outputs[0].full_name], op_version=container.target_opset)
+    onnx_op = OnnxMul(
+        operator.inputs[0],
+        factor,
+        output_names=[operator.outputs[0].full_name],
+        op_version=container.target_opset,
+    )
     onnx_op.add_to(scope, container)
 
 

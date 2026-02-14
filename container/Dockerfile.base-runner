@@ -1,4 +1,5 @@
-FROM ffreis/base
+ARG BASE_IMAGE=localhost/ffreis/base:local
+FROM ${BASE_IMAGE}
 
 USER root
 

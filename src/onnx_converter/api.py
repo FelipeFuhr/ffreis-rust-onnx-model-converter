@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from pathlib import Path
-from typing import Iterable
-from typing import Mapping
-from typing import Optional
 
-from onnx_converter.application.use_cases import build_conversion_options
-from onnx_converter.application.use_cases import convert_custom_file
-from onnx_converter.application.use_cases import convert_sklearn_file
-from onnx_converter.application.use_cases import convert_tensorflow_file
-from onnx_converter.application.use_cases import convert_torch_file
+from onnx_converter.application.use_cases import (
+    build_conversion_options,
+    convert_custom_file,
+    convert_sklearn_file,
+    convert_tensorflow_file,
+    convert_torch_file,
+)
 
 
 def convert_torch_file_to_onnx(
@@ -20,13 +20,13 @@ def convert_torch_file_to_onnx(
     input_shape: Iterable[int],
     opset_version: int = 14,
     allow_unsafe: bool = False,
-    input_names: Optional[list[str]] = None,
-    output_names: Optional[list[str]] = None,
+    input_names: list[str] | None = None,
+    output_names: list[str] | None = None,
     dynamic_batch: bool = False,
     optimize: bool = False,
     quantize_dynamic: bool = False,
-    metadata: Optional[Mapping[str, str]] = None,
-    parity_input_path: Optional[Path] = None,
+    metadata: Mapping[str, str] | None = None,
+    parity_input_path: Path | None = None,
     parity_atol: float = 1e-5,
 ) -> Path:
     """Convert a serialized PyTorch model artifact to ONNX."""
@@ -57,8 +57,8 @@ def convert_tf_path_to_onnx(
     opset_version: int = 14,
     optimize: bool = False,
     quantize_dynamic: bool = False,
-    metadata: Optional[Mapping[str, str]] = None,
-    parity_input_path: Optional[Path] = None,
+    metadata: Mapping[str, str] | None = None,
+    parity_input_path: Path | None = None,
     parity_atol: float = 1e-5,
     parity_rtol: float = 1e-4,
 ) -> Path:
@@ -87,8 +87,8 @@ def convert_sklearn_file_to_onnx(
     allow_unsafe: bool = False,
     optimize: bool = False,
     quantize_dynamic: bool = False,
-    metadata: Optional[Mapping[str, str]] = None,
-    parity_input_path: Optional[Path] = None,
+    metadata: Mapping[str, str] | None = None,
+    parity_input_path: Path | None = None,
     parity_atol: float = 1e-5,
     parity_rtol: float = 1e-4,
 ) -> Path:
@@ -115,10 +115,10 @@ def convert_custom_file_to_onnx(
     model_path: Path,
     output_path: Path,
     *,
-    model_type: Optional[str] = None,
-    plugin_name: Optional[str] = None,
-    plugin_modules: Optional[Iterable[str]] = None,
-    options: Optional[Mapping[str, object]] = None,
+    model_type: str | None = None,
+    plugin_name: str | None = None,
+    plugin_modules: Iterable[str] | None = None,
+    options: Mapping[str, object] | None = None,
 ) -> Path:
     """Convert model artifact via plugin-based adapter resolution."""
     result = convert_custom_file(

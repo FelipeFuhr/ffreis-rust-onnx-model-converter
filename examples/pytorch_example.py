@@ -26,6 +26,7 @@ class TinyNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run a forward pass through the tiny network."""
         return self.net(x)
 
 
@@ -78,7 +79,8 @@ def main() -> None:
     print(f"Max abs diff: {max_abs_diff:.8f}")
     if not np.allclose(torch_out, onnx_out, atol=1e-5, rtol=1e-4):
         raise SystemExit(
-            f"FAIL: output mismatch (max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
+            "FAIL: output mismatch "
+            f"(max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
         )
 
     print(f"PASS: {output_path}")

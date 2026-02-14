@@ -11,7 +11,8 @@ import onnx_converter.postprocess
 class FakeParityChecker:
     """Fake parity checker for testing."""
 
-    def check(self, *args, **kwargs):
+    def check(self, *args: object, **kwargs: object) -> None:
+        """Accept parity-check inputs without performing validation."""
         # Intentionally no-op for converter dependency isolation in unit tests.
         del args, kwargs
 
@@ -22,11 +23,14 @@ def mock_converter_dependencies(
 ) -> None:
     """Mock converter, postprocessor, and parity checker dependencies.
 
-    Args:
-        monkeypatch: pytest monkeypatch fixture
-        framework: Framework name ("torch" or "tensorflow")
-    """
+    Parameters
+    ----------
+    monkeypatch : pytest.MonkeyPatch
+        Pytest monkeypatch fixture.
+    framework : str, default="torch"
+        Framework name (``"torch"`` or ``"tensorflow"``).
 
+    """
     # Mock postprocess functions to avoid loading ONNX files
     monkeypatch.setattr(
         onnx_converter.postprocess,

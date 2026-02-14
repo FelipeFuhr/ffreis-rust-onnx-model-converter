@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
-from typing import Mapping
-from typing import Optional
 
 from onnx_converter.application.options import ParityOptions
 from onnx_converter.errors import ParityError
-from onnx_converter.parity import check_sklearn_parity
-from onnx_converter.parity import check_tensor_parity
-from onnx_converter.parity import load_parity_input
+from onnx_converter.parity import (
+    check_sklearn_parity,
+    check_tensor_parity,
+    load_parity_input,
+)
 
 
 class TorchParityChecker:
@@ -22,8 +23,21 @@ class TorchParityChecker:
         model: Any,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Optional[Mapping[str, Any]] = None,
+        context: Mapping[str, Any] | None = None,
     ) -> None:
+        """Validate parity between PyTorch and ONNX outputs.
+
+        Parameters
+        ----------
+        model : Any
+            Source PyTorch model object.
+        onnx_path : Path
+            Generated ONNX model path.
+        parity : ParityOptions
+            Parity input and tolerance options.
+        context : Mapping[str, Any] | None, default=None
+            Reserved extension context.
+        """
         del context
         if parity.input_path is None:
             return
@@ -58,8 +72,21 @@ class TensorflowParityChecker:
         model: Any,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Optional[Mapping[str, Any]] = None,
+        context: Mapping[str, Any] | None = None,
     ) -> None:
+        """Validate parity between TensorFlow and ONNX outputs.
+
+        Parameters
+        ----------
+        model : Any
+            Source TensorFlow model object.
+        onnx_path : Path
+            Generated ONNX model path.
+        parity : ParityOptions
+            Parity input and tolerance options.
+        context : Mapping[str, Any] | None, default=None
+            Reserved extension context.
+        """
         del context
         if parity.input_path is None:
             return
@@ -93,8 +120,21 @@ class SklearnParityChecker:
         model: Any,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Optional[Mapping[str, Any]] = None,
+        context: Mapping[str, Any] | None = None,
     ) -> None:
+        """Validate parity between sklearn and ONNX outputs.
+
+        Parameters
+        ----------
+        model : Any
+            Source scikit-learn model object.
+        onnx_path : Path
+            Generated ONNX model path.
+        parity : ParityOptions
+            Parity input and tolerance options.
+        context : Mapping[str, Any] | None, default=None
+            Reserved extension context.
+        """
         del context
         if parity.input_path is None:
             return

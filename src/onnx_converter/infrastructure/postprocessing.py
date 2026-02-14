@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 from onnx_converter.application.options import PostprocessOptions
-from onnx_converter.postprocess import add_onnx_metadata
-from onnx_converter.postprocess import add_standard_metadata
-from onnx_converter.postprocess import optimize_onnx_graph
-from onnx_converter.postprocess import quantize_onnx_dynamic
+from onnx_converter.postprocess import (
+    add_onnx_metadata,
+    add_standard_metadata,
+    optimize_onnx_graph,
+    quantize_onnx_dynamic,
+)
 
 
 class OnnxPostProcessorImpl:
@@ -23,6 +25,21 @@ class OnnxPostProcessorImpl:
         config_metadata: Mapping[str, str],
         options: PostprocessOptions,
     ) -> None:
+        """Apply metadata enrichment and optional ONNX optimizations.
+
+        Parameters
+        ----------
+        output_path : Path
+            ONNX artifact to modify in place.
+        source_path : Path
+            Source model artifact path.
+        framework : str
+            Source framework label.
+        config_metadata : Mapping[str, str]
+            Metadata derived from conversion configuration.
+        options : PostprocessOptions
+            Post-processing feature toggles and metadata.
+        """
         add_standard_metadata(
             output_path=output_path,
             framework=framework,

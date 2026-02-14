@@ -9,18 +9,20 @@ from typing import Any
 import numpy as np
 import onnx
 import onnxruntime as ort
+from skl2onnx.common.data_types import FloatTensorType
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from skl2onnx.common.data_types import FloatTensorType
 
 from onnx_converter import convert_sklearn_to_onnx
 
 
 def _to_prob_matrix(raw: Any, classes: np.ndarray) -> np.ndarray:
     if isinstance(raw, list) and raw and isinstance(raw[0], dict):
-        return np.array([[row[int(cls)] for cls in classes] for row in raw], dtype=np.float32)
+        return np.array(
+            [[row[int(cls)] for cls in classes] for row in raw], dtype=np.float32
+        )
     return np.asarray(raw, dtype=np.float32)
 
 
@@ -33,7 +35,9 @@ def _assert_classifier_parity(model: Any, onnx_path: Path, batch: np.ndarray) ->
     onnx_pred = np.asarray(outputs[0])
     onnx_proba = _to_prob_matrix(outputs[1], np.asarray(model.classes_))
 
-    if onnx_pred.shape != sklearn_pred.shape or not np.array_equal(onnx_pred, sklearn_pred):
+    if onnx_pred.shape != sklearn_pred.shape or not np.array_equal(
+        onnx_pred, sklearn_pred
+    ):
         raise SystemExit("FAIL: predicted labels mismatch between sklearn and ONNX.")
     if sklearn_proba.shape != onnx_proba.shape:
         raise SystemExit("FAIL: probability tensor shape mismatch.")
@@ -42,7 +46,8 @@ def _assert_classifier_parity(model: Any, onnx_path: Path, batch: np.ndarray) ->
     print(f"Max |proba diff|: {max_abs_diff:.8f}")
     if not np.allclose(sklearn_proba, onnx_proba, atol=1e-5, rtol=1e-4):
         raise SystemExit(
-            f"FAIL: probability mismatch (max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
+            "FAIL: probability mismatch "
+            f"(max_abs_diff={max_abs_diff:.8f}, atol=1e-5, rtol=1e-4)."
         )
 
 

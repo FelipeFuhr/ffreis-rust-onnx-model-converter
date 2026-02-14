@@ -1,34 +1,38 @@
-FROM ffreis/base
+ARG BASE_IMAGE=localhost/ffreis/base:local
+FROM ${BASE_IMAGE}
 
-ARG PYTHON_VERSION=3.12
 ARG EXTRAS=all
+ARG PYTHON_VERSION=3.13
 
 USER root
 
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      python${PYTHON_VERSION} \
-      python${PYTHON_VERSION}-venv \
+      python3 \
+      python3-venv \
       python3-pip \
       ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN python${PYTHON_VERSION} -m pip install --no-cache-dir uv
+    && rm -rf /var/lib/apt/lists/* \
+    && python3 -m venv /opt/uv-bootstrap \
+    && /opt/uv-bootstrap/bin/pip install --no-cache-dir --upgrade pip uv \
+    && ln -sf /opt/uv-bootstrap/bin/uv /usr/local/bin/uv
 
 WORKDIR /tmp/project
 
 COPY pyproject.toml uv.lock ./
 
-RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1)
-
-RUN uv venv /opt/venv --python python${PYTHON_VERSION} \
+RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1) \
+ && uv python install ${PYTHON_VERSION} \
+ && uv venv /opt/venv --python ${PYTHON_VERSION} \
  && . /opt/venv/bin/activate \
- && uv sync --extra ${EXTRAS}
+ && uv sync --active --no-install-project --extra ${EXTRAS}
 
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
-RUN chown -R appuser:appgroup /opt/venv
+RUN chown -R appuser:appgroup /opt/venv /opt/uv-python
 
 USER appuser:appgroup
 WORKDIR /app

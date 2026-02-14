@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import joblib
@@ -14,21 +16,23 @@ from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
-from examples.custom_sklearn_transformer import MultiplyByConstant
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def main() -> None:
     """Run custom-converter CLI flow with explicit pass/fail checks."""
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+    from examples.custom_sklearn_transformer import MultiplyByConstant
+
     X, y = load_iris(return_X_y=True)
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
-    cache_dir = output_dir / "pipeline_cache"
     pipeline = Pipeline(
         [
             ("scale", MultiplyByConstant(factor=1.5)),
             ("clf", LogisticRegression(max_iter=200)),
-        ],
-        memory=str(cache_dir),
+        ]
     )
     pipeline.fit(X, y)
 
@@ -44,10 +48,23 @@ def main() -> None:
         "--n-features",
         str(X.shape[1]),
         "--custom-converter-module",
-        "examples/custom_sklearn_transformer.py",
+        "examples.custom_sklearn_transformer",
         "--allow-unsafe",
     ]
-    result = subprocess.run(command, check=False, capture_output=True, text=True)
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        f"{PROJECT_ROOT}:{existing_pythonpath}"
+        if existing_pythonpath
+        else str(PROJECT_ROOT)
+    )
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
     print(result.stdout)
     if result.returncode != 0:
         raise SystemExit(f"FAIL: CLI conversion failed.\n{result.stderr}")

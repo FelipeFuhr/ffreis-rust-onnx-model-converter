@@ -6,13 +6,13 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "src/onnx_converter/application/use_cases.py"
 MAX_STATEMENTS = 60
 
 
 def main() -> None:
+    """Fail when orchestrator functions exceed the statement threshold."""
     tree = ast.parse(TARGET.read_text(encoding="utf-8"))
     violations: list[str] = []
     for node in tree.body:

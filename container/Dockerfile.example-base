@@ -1,19 +1,29 @@
 FROM ffreis/base-runner:local
 
+ARG PYTHON_VERSION=3.13
+
 USER root
 WORKDIR /app
 
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      python3.11 \
-      python3.11-venv \
+      python3 \
+      python3-venv \
       python3-pip \
       ca-certificates && \
-    python3.11 -m pip install --no-cache-dir --upgrade pip uv && \
+    python3 -m venv /opt/uv-bootstrap && \
+    /opt/uv-bootstrap/bin/pip install --no-cache-dir --upgrade pip uv && \
+    /opt/uv-bootstrap/bin/uv python install ${PYTHON_VERSION} && \
+    /opt/uv-bootstrap/bin/uv venv /opt/examples-venv --python ${PYTHON_VERSION} && \
+    chown -R appuser:appgroup /opt/examples-venv /opt/uv-python && \
+    ln -sf /opt/uv-bootstrap/bin/uv /usr/local/bin/uv && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --chown=appuser:appgroup --chmod=0444 . /app
-RUN find /app -type d -exec chmod 0555 {} + && \
-    chmod -R a-w /app
+ENV VIRTUAL_ENV=/opt/examples-venv
+ENV PATH="/opt/examples-venv/bin:${PATH}"
+
+COPY --chown=appuser:appgroup . /app
 
 USER appuser

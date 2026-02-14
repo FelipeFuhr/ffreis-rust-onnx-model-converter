@@ -15,16 +15,17 @@ concurrency:
 
 jobs:
   coverage:
+    name: Unit Coverage
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
         with:
           enable-cache: true
 
@@ -33,8 +34,8 @@ jobs:
           set -euo pipefail
           test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev)
-        run: uv sync --extra dev
+      - name: Install deps (dev + cli)
+        run: uv sync --extra dev --extra cli
 
       - name: Generate coverage (Makefile)
         run: |
@@ -47,5 +48,7 @@ jobs:
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
         with:
           files: ./coverage.xml
+          flags: unit
+          name: unit-coverage
           fail_ci_if_error: false
           verbose: true

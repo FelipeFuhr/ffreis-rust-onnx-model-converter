@@ -9,13 +9,13 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 import optuna
+from skl2onnx.common.data_types import FloatTensorType
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from skl2onnx.common.data_types import FloatTensorType
 
 from onnx_converter import convert_sklearn_to_onnx
 
@@ -37,7 +37,7 @@ def _build_pipeline(c_value: float, memory: str | None = None) -> Pipeline:
                 "clf",
                 LogisticRegression(
                     C=c_value,
-                    solver="liblinear",
+                    solver="lbfgs",
                     max_iter=200,
                     random_state=42,
                 ),
@@ -48,6 +48,7 @@ def _build_pipeline(c_value: float, memory: str | None = None) -> Pipeline:
 
 
 def main() -> None:
+    """Tune a sklearn pipeline with Optuna and validate ONNX parity."""
     output_dir = Path("outputs")
     output_dir.mkdir(exist_ok=True)
     onnx_path = output_dir / "optuna_logreg.onnx"

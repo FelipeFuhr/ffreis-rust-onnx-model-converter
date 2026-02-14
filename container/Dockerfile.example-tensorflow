@@ -1,7 +1,17 @@
 FROM onnx-converter/examples-base:local
 
-RUN uv pip install --system --editable ".[runtime]" && \
-    uv pip install --system "tensorflow-cpu>=2.13.0" "tf2onnx>=1.16.0"
+# TensorFlow/tf2onnx currently has no stable cp313 wheel support for this stack.
+# Keep the repository default at Python 3.13, but run this example in an isolated
+# Python 3.12 environment with a compatible protobuf range (no forced override).
+# TODO(ffreis): remove this py312 compatibility env once TensorFlow + tf2onnx
+# can be resolved on CPython 3.13 with a non-legacy protobuf constraint.
+RUN uv python install 3.12 && \
+    uv venv /app/.venv-tf --python 3.12 && \
+    uv pip install --python /app/.venv-tf/bin/python \
+      ".[runtime]" \
+      "tensorflow-cpu>=2.19,<2.20" \
+      "tf2onnx>=1.16,<1.17" \
+      "protobuf>=3.20,<4"
 
 USER appuser:appgroup
-ENTRYPOINT ["python3.11", "examples/tensorflow_example.py"]
+ENTRYPOINT ["/app/.venv-tf/bin/python", "examples/tensorflow_example.py"]

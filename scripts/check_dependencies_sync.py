@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
-import tomllib
-
-
 ROOT = Path(__file__).resolve().parents[1]
-SYNC_EXTRAS = ("cli", "runtime", "torch", "tensorflow", "sklearn", "optuna")
+# Secure default dependency profile used by CI/security scanners.
+# TensorFlow/tf2onnx is intentionally excluded; use the `tf_legacy` extra when needed.
+SYNC_EXTRAS = ("cli", "runtime", "torch", "sklearn", "optuna")
 
 
 def _normalize(req: str) -> str:
@@ -35,6 +35,7 @@ def _actual_requirements() -> set[str]:
 
 
 def main() -> None:
+    """Compare generated requirements against current requirements.txt."""
     expected = _expected_requirements()
     actual = _actual_requirements()
 
@@ -51,9 +52,7 @@ def main() -> None:
         if unknown_in_requirements:
             parts.append("Unexpected in requirements.txt:")
             parts.extend(f"- {entry}" for entry in unknown_in_requirements)
-        raise SystemExit(
-            "\n".join(parts)
-        )
+        raise SystemExit("\n".join(parts))
     print("Dependency sync check passed.")
 
 

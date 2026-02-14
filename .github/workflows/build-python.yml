@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.12", "3.11", "3.10"]
+        python: ["3.14", "3.13", "3.11", "3.10"]
         os: [ubuntu-latest, macos-latest]
 
     steps:
@@ -34,11 +34,11 @@ jobs:
       - name: Require lock
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev)
-        run: uv sync --extra dev
+      - name: Install deps (dev + cli)
+        run: uv sync --extra dev --extra cli
 
       - name: Run tests
-        run: uv run pytest -q -m "not integration"
+        run: uv run pytest -q -m unit
 
       # Equivalent to `cargo build --release`
       - name: Build package artifacts
@@ -47,9 +47,6 @@ jobs:
       # CLI smoke test (like running built binary)
       - name: CLI smoke test
         run: |
-          if uv run python -c "import importlib.util,sys;sys.exit(0 if importlib.util.find_spec('pkg') else 1)"; then
-            echo "Package import OK"
-          fi
-
-          # if you have console_script entrypoint:
-          uv run onnx-converter --help || true
+          set -euo pipefail
+          uv run python -c "import onnx_converter"
+          uv run convert-to-onnx --help

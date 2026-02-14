@@ -29,7 +29,9 @@ def validate_onnx_if_requested(output_path: Path, validate: bool) -> None:
         import onnx
         import onnxruntime as ort
     except Exception as exc:  # pragma: no cover - dependency guarded by CLI
-        raise ConversionError("Validation requires onnxruntime to be installed.") from exc
+        raise ConversionError(
+            "Validation requires onnxruntime to be installed."
+        ) from exc
 
     try:
         model = onnx.load(str(output_path))

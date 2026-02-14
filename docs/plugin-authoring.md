@@ -156,4 +156,3 @@ If plugin adds new optional dependencies:
 - Do not print from conversion logic; return data/errors and let CLI format output.
 - Use domain-specific errors with stable messages.
 - Keep plugin options explicit and typed; avoid boolean-flag drift.
-

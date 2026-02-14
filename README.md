@@ -65,11 +65,12 @@ pip install -e .
 ```bash
 pip install -e ".[cli]"
 pip install -e ".[torch]"
-pip install -e ".[tensorflow]"
+pip install -e ".[tf_legacy]"   # TensorFlow/tf2onnx conversion path
+pip install -e ".[tensorflow]"  # backward-compatible alias
 pip install -e ".[sklearn]"
 pip install -e ".[optuna]"
 pip install -e ".[runtime]"
-pip install -e ".[all]"
+pip install -e ".[all]"         # secure default bundle (excludes tf_legacy)
 ```
 
 ## CLI usage
@@ -124,7 +125,7 @@ python examples/autosklearn_roundtrip.py
 
 ## Developer workflow
 
-Default local version is Python 3.12 (`Makefile` default). CI also defaults to 3.12, with matrix runs including older versions.
+Default local version is Python 3.13 (`Makefile` default). CI also defaults to 3.13, with matrix runs including older versions.
 
 ```bash
 make env
@@ -145,12 +146,16 @@ make ci-local
 
 ## CI overview
 
-- `build-python.yml`: matrix tests/package build (`3.12`, `3.11`, `3.10`)
+- `build-python.yml`: matrix tests/package build (`3.13`, `3.11`, `3.10`)
 - `lint.yml`: ruff + mypy
 - `coverage.yml`: coverage report (threshold configured in `pyproject.toml`)
 - `architecture.yml`: dependency sync + architecture + complexity checks
 - `integration.yml`: scheduled/manual integration tests
 - `examples.yml`: dockerized example runs (fast PR set + heavier scheduled set)
+
+`tf_legacy` note:
+- TensorFlow conversion is intentionally separated from `all` because current `tf2onnx` constraints on Python `<3.13` can pin older `protobuf`.
+- CI/security gates target the secure default dependency profile; TensorFlow compatibility is tested in a dedicated integration job.
 
 ## Security and serialization notes
 
@@ -170,7 +175,7 @@ make ci-local
 ## Requirements
 
 - Python `>=3.10` (project support)
-- Python `3.12` (default local/CI baseline)
+- Python `3.13` (default local/CI baseline)
 
 ## License
 

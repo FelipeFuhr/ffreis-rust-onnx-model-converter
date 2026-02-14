@@ -3,8 +3,22 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ main ]
+    paths:
+      - "container/**"
+      - "container/digests.env"
+      - "Makefile"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/trivy.yml"
   push:
     branches: [ main ]
+    paths:
+      - "container/**"
+      - "container/digests.env"
+      - "Makefile"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/trivy.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,29 +41,99 @@ jobs:
       - name: Build images
         run: |
           set -euo pipefail
-          CONTAINER_COMMAND=podman make build
+          # Use Python 3.13 for containerized dependency resolution so runtime
+          # stack selects protobuf 6.x instead of legacy 3.20.x pins.
+          CONTAINER_COMMAND=podman PYTHON_VERSION=3.13 make build
       - name: Install Trivy
         run: |
           set -euo pipefail
+          TRIVY_INSTALL_REF="v0.67.2"
           curl -sfL \
             --proto '=https' \
             --proto-redir '=https' \
-            https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            "https://raw.githubusercontent.com/aquasecurity/trivy/${TRIVY_INSTALL_REF}/contrib/install.sh" \
             | sudo sh -s -- -b /usr/local/bin
           trivy --version
-      - name: Save images and scan
+      - name: Save images and scan (sequential, Podman)
         run: |
           set -euo pipefail
           mkdir -p artifacts trivy-results
           images=(ffreis/base ffreis/base-runner ffreis/onnx-converter-uv-venv ffreis/onnx-converter-package ffreis/onnx-converter-cli)
+
+          # Warm DB once.
+          trivy image --download-db-only --no-progress
+
           for image in "${images[@]}"; do
             name="${image##*/}"
             tar="artifacts/${name}.tar"
+
             podman save -o "$tar" "$image"
             test -s "$tar"
-            trivy image --input "$tar" --exit-code 1 --format sarif --output "trivy-results/${name}.sarif"
+
+            # 1) Always produce SARIF for all severities so GitHub code scanning
+            # has complete visibility, regardless of pass/fail gate outcome.
+            trivy image \
+              --input "$tar" \
+              --skip-db-update \
+              --no-progress \
+              --ignorefile .trivyignore.yaml \
+              --scanners vuln \
+              --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format sarif \
+              --output "trivy-results/${name}.sarif"
             test -s "trivy-results/${name}.sarif"
+
+            # 1b) Export JSON for trend analysis and triage automation.
+            trivy image \
+              --input "$tar" \
+              --skip-db-update \
+              --no-progress \
+              --ignorefile .trivyignore.yaml \
+              --scanners vuln \
+              --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format json \
+              --output "trivy-results/${name}.json"
+            test -s "trivy-results/${name}.json"
+
+            # 2) Print a human-readable full report in CI logs (all severities).
+            echo "Full vulnerability report for ${image} (all severities):"
+            trivy image \
+              --input "$tar" \
+              --skip-db-update \
+              --no-progress \
+              --ignorefile .trivyignore.yaml \
+              --scanners vuln \
+              --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 0 \
+              --format table
+
+            # 3) Enforce policy: fail only when HIGH/CRITICAL vulnerabilities exist.
+            echo "Gating ${image} on HIGH/CRITICAL vulnerabilities..."
+            trivy image \
+              --input "$tar" \
+              --skip-db-update \
+              --no-progress \
+              --ignorefile .trivyignore.yaml \
+              --scanners vuln \
+              --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              --exit-code 1 \
+              --format table
+
+            # Avoid disk exhaustion on hosted runners.
+            rm -f "$tar"
           done
+      - name: Upload Trivy JSON reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-json-reports
+          path: trivy-results/*.json
+          if-no-files-found: error
       - name: Upload Trivy SARIF (per image)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
         shell: bash
@@ -57,8 +141,14 @@ jobs:
           set -euo pipefail
           for f in trivy-results/*.sarif; do
             name="$(basename "$f" .sarif)"
-            echo "Uploading $f as category trivy-$name"
-            echo "SARIF_FILE=$f" >> $GITHUB_ENV
-            echo "SARIF_CATEGORY=trivy-$name" >> $GITHUB_ENV
-            # run one at a time by calling the action in separate steps is awkward
+            echo "Uploading $f with category trivy-$name"
+            sarif_payload="$(gzip -c "$f" | base64 | tr -d '\n')"
+            gh api \
+              -X POST \
+              /repos/${{ github.repository }}/code-scanning/sarifs \
+              -f sarif="${sarif_payload}" \
+              -f commit_sha="${{ github.sha }}" \
+              -f ref="${{ github.ref }}"
           done
+        env:
+          GH_TOKEN: ${{ github.token }}

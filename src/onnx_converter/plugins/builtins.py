@@ -40,6 +40,7 @@ class SklearnFilePlugin:
             Path to the model artifact.
         model_type : str | None
             Optional model family hint.
+
         Returns
         -------
         bool

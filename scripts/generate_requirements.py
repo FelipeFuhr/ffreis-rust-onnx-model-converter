@@ -3,13 +3,13 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
-import tomllib
-
-
 ROOT = Path(__file__).resolve().parents[1]
-SYNC_EXTRAS = ("cli", "runtime", "torch", "tensorflow", "sklearn", "optuna")
+# Secure default dependency profile used by CI/security scanners.
+# TensorFlow/tf2onnx is intentionally excluded; use the `tf_legacy` extra when needed.
+SYNC_EXTRAS = ("cli", "runtime", "torch", "sklearn", "optuna")
 
 
 def _collect_requirements() -> list[str]:
@@ -22,9 +22,13 @@ def _collect_requirements() -> list[str]:
 
 
 def main() -> None:
+    """Regenerate requirements.txt from project dependency declarations."""
     reqs = _collect_requirements()
     header = [
-        "# Generated from pyproject.toml (base + extras: cli,runtime,torch,tensorflow,sklearn)",
+        (
+            "# Generated from pyproject.toml "
+            "(base + extras: cli,runtime,torch,sklearn,optuna)"
+        ),
         "# Do not edit manually; run: uv run python scripts/generate_requirements.py",
         "",
     ]

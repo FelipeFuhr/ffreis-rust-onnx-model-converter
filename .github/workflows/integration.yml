@@ -2,6 +2,10 @@ name: Integration Tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
   schedule:
     - cron: "0 7 * * 1"
 
@@ -11,6 +15,7 @@ concurrency:
 
 jobs:
   integration:
+    name: Integration (Secure Default)
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -19,9 +24,9 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
         with:
           enable-cache: true
 
@@ -32,4 +37,61 @@ jobs:
         run: uv sync --extra dev --extra all
 
       - name: Run integration tests
-        run: uv run pytest -m integration -q
+        run: |
+          uv run pytest -q -m "integration and not e2e" \
+            --cov=onnx_converter \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term \
+            --cov-fail-under=0
+          test -s coverage.xml
+
+      - name: Upload integration coverage to Codecov
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        with:
+          files: ./coverage.xml
+          flags: integration
+          name: integration-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+  integration-tf-legacy:
+    name: Integration (TF Legacy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
+        with:
+          enable-cache: true
+
+      - name: Require uv.lock
+        run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+
+      - name: Install deps (dev + cli + runtime + tf_legacy)
+        run: uv sync --extra dev --extra cli --extra runtime --extra tf_legacy
+
+      - name: Run TensorFlow integration tests
+        run: |
+          uv run pytest -q tests/integration_tests -m "integration and not e2e" -k tensorflow \
+            --cov=onnx_converter \
+            --cov-report=xml:coverage-tf.xml \
+            --cov-report=term \
+            --cov-fail-under=0
+          test -s coverage-tf.xml
+
+      - name: Upload TensorFlow integration coverage to Codecov
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        with:
+          files: ./coverage-tf.xml
+          flags: integration-tf-legacy
+          name: integration-tf-legacy-coverage
+          fail_ci_if_error: false
+          verbose: true

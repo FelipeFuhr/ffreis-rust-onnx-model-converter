@@ -3,7 +3,7 @@
 SHELL := /usr/bin/env bash
 
 CONTAINER_COMMAND ?= podman
-PYTHON_VERSION ?= 3.12
+PYTHON_VERSION ?= 3.13
 VENV_DIR ?= .venv
 
 PREFIX ?= ffreis
@@ -62,11 +62,15 @@ test: ## Run tests
 
 .PHONY: test-unit
 test-unit: ## Run unit tests only
-	$(VENV_DIR)/bin/pytest -q -m "not integration"
+	$(VENV_DIR)/bin/pytest -q -m "unit"
 
 .PHONY: test-integration
 test-integration: ## Run integration tests only
-	$(VENV_DIR)/bin/pytest -q -m integration
+	$(VENV_DIR)/bin/pytest -q -m "integration and not e2e"
+
+.PHONY: test-e2e
+test-e2e: ## Run end-to-end tests only
+	$(VENV_DIR)/bin/pytest -q -m e2e
 
 .PHONY: check
 check: lint test-unit ## Run lint and fast tests
@@ -74,7 +78,7 @@ check: lint test-unit ## Run lint and fast tests
 .PHONY: coverage
 coverage: ## Generate coverage report
 	mkdir -p coverage
-	$(VENV_DIR)/bin/pytest -m "not integration" --cov=onnx_converter --cov-report=xml:coverage.xml --cov-report=html:coverage/html --cov-report=term
+	$(VENV_DIR)/bin/pytest -m "unit" --cov=onnx_converter --cov-report=xml:coverage.xml --cov-report=html:coverage/html --cov-report=term
 
 .PHONY: deps-sync-check
 deps-sync-check: ## Verify requirements.txt is synced with pyproject.toml
@@ -105,7 +109,11 @@ clean: ## Remove caches and venv
 
 .PHONY: build-base
 build-base: ## Build base image (pinned by digest env)
-	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.base -t $(PREFIX)/base $(BASE_DIR) \
+	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.base \
+		-t $(PREFIX)/base \
+		-t $(PREFIX)/base:local \
+		-t localhost/$(PREFIX)/base:local \
+		$(BASE_DIR) \
 		--build-arg BASE_IMAGE="$(BASE_IMAGE_VALUE)" \
 		--build-arg BASE_DIGEST="$(BASE_DIGEST_VALUE)"
 
@@ -115,7 +123,8 @@ build-base-runner: build-base ## Build base-runner image
 
 .PHONY: build-uv-venv
 build-uv-venv: build-base ## Build uv venv image
-	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.uv-builder -t $(UV_VENV_IMAGE) $(BASE_DIR)
+	$(CONTAINER_COMMAND) build -f $(CONTAINER_DIR)/Dockerfile.uv-builder -t $(UV_VENV_IMAGE) $(BASE_DIR) \
+		--build-arg PYTHON_VERSION="$(PYTHON_VERSION)"
 
 .PHONY: build-package
 build-package: build-uv-venv ## Build package image (installs converter)

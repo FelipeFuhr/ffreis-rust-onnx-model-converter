@@ -14,18 +14,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-test:
+  code-review:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        extra: ["", "cli", "sklearn", "torch", "tensorflow"]
 
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
         with:
@@ -34,12 +31,8 @@ jobs:
       - name: Check lock present
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (including dev tools)
-        run: uv sync --group dev
-
-      - name: Install package extras
-        if: matrix.extra != ''
-        run: uv pip install -e ".[${{ matrix.extra }}]"
+      - name: Install deps (dev + framework extras)
+        run: uv sync --extra dev --extra cli --extra sklearn --extra torch
 
       - name: Ensure test/runtime deps
         run: uv pip install pytest onnxruntime
@@ -53,7 +46,7 @@ jobs:
       - name: Tests
         run: |
           if find . -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
-            uv run pytest
+            uv run pytest -q -m unit
           else
             echo "No tests found."
           fi

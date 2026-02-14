@@ -3,8 +3,24 @@ name: Examples
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - "examples/**"
+      - "container/**"
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Makefile"
+      - ".github/workflows/examples.yml"
   push:
     branches: [ main ]
+    paths:
+      - "examples/**"
+      - "container/**"
+      - "src/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Makefile"
+      - ".github/workflows/examples.yml"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
@@ -14,157 +30,62 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  examples-fast:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: sklearn
-            dockerfile: container/Dockerfile.example-sklearn
-            image: example-sklearn
-          - name: compare-sklearn
-            dockerfile: container/Dockerfile.example-compare-sklearn
-            image: example-compare-sklearn
-          - name: sklearn-custom-cli
-            dockerfile: container/Dockerfile.example-sklearn-custom-cli
-            image: example-sklearn-custom-cli
-          - name: pytorch
-            dockerfile: container/Dockerfile.example-pytorch
-            image: example-pytorch
-          - name: tensorflow
-            dockerfile: container/Dockerfile.example-tensorflow
-            image: example-tensorflow
-          - name: optuna-sklearn
-            dockerfile: container/Dockerfile.example-optuna-sklearn
-            image: example-optuna-sklearn
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-F
-      - name: Read base digest
-        id: base_image
-        run: |
-          echo "base_image=$(grep '^BASE_IMAGE=' container/digests.env | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-          echo "base_digest=$(grep '^BASE_DIGEST=' container/digests.env | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-
-      - name: Build base image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.base
-          tags: ffreis/base
-          load: true
-          build-args: |
-            BASE_IMAGE=${{ steps.base_image.outputs.base_image }}
-            BASE_DIGEST=${{ steps.base_image.outputs.base_digest }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build base-runner image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.base-runner
-          tags: ffreis/base-runner:local
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build shared examples base image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.example-base
-          tags: onnx-converter/examples-base:local
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build ${{ matrix.name }} image
-        uses: 10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          tags: ${{ matrix.image }}
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Run ${{ matrix.name }} example
-        run: docker run --rm ${{ matrix.image }}
-
-  examples-autosklearn:
-    if: ${{ github.event_name != 'pull_request' }}
+  examples:
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: autosklearn-v1
-            dockerfile: container/Dockerfile.autosklearn1
-            image: example-autosklearn-v1
-          - name: autosklearn-v2
-            dockerfile: container/Dockerfile.autosklearn2
-            image: example-autosklearn-v2
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
-
-      - name: Read base digest
-        id: base_image
+      - name: Build and run examples
         run: |
-          echo "base_image=$(grep '^BASE_IMAGE=' container/digests.env | cut -d= -f2)" >> "$GITHUB_OUTPUT"
-          echo "base_digest=$(grep '^BASE_DIGEST=' container/digests.env | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
 
-      - name: Build base image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.base
-          tags: ffreis/base
-          load: true
-          build-args: |
-            BASE_IMAGE=${{ steps.base_image.outputs.base_image }}
-            BASE_DIGEST=${{ steps.base_image.outputs.base_digest }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          base_image="$(grep '^BASE_IMAGE=' container/digests.env | cut -d= -f2)"
+          base_digest="$(grep '^BASE_DIGEST=' container/digests.env | cut -d= -f2)"
 
-      - name: Build base-runner image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.base-runner
-          tags: ffreis/base-runner:local
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          docker build -f container/Dockerfile.base \
+            -t ffreis/base \
+            -t ffreis/base:local \
+            -t localhost/ffreis/base:local \
+            --build-arg BASE_IMAGE="${base_image}" \
+            --build-arg BASE_DIGEST="${base_digest}" .
+          docker build -f container/Dockerfile.base-runner -t ffreis/base-runner:local .
+          docker build -f container/Dockerfile.example-base -t onnx-converter/examples-base:local .
 
-      - name: Build shared examples base image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
-        with:
-          context: .
-          file: container/Dockerfile.example-base
-          tags: onnx-converter/examples-base:local
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          fast_examples=(
+            "container/Dockerfile.example-sklearn example-sklearn"
+            "container/Dockerfile.example-compare-sklearn example-compare-sklearn"
+            "container/Dockerfile.example-sklearn-custom-cli example-sklearn-custom-cli"
+            "container/Dockerfile.example-pytorch example-pytorch"
+            "container/Dockerfile.example-tensorflow example-tensorflow"
+            "container/Dockerfile.example-optuna-sklearn example-optuna-sklearn"
+          )
 
-      - name: Build ${{ matrix.name }} image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8F
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          tags: ${{ matrix.image }}
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          for entry in "${fast_examples[@]}"; do
+            dockerfile="${entry%% *}"
+            image="${entry##* }"
+            echo "Building ${image} from ${dockerfile}"
+            docker build -f "${dockerfile}" -t "${image}" .
+            echo "Running ${image}"
+            docker run --rm "${image}"
+          done
 
-      - name: Run ${{ matrix.name }} example
-        run: docker run --rm ${{ matrix.image }}
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            autosklearn_examples=(
+              "container/Dockerfile.autosklearn1 example-autosklearn-v1"
+              "container/Dockerfile.autosklearn2 example-autosklearn-v2"
+            )
+
+            for entry in "${autosklearn_examples[@]}"; do
+              dockerfile="${entry%% *}"
+              image="${entry##* }"
+              echo "Building ${image} from ${dockerfile}"
+              docker build -f "${dockerfile}" -t "${image}" .
+              echo "Running ${image}"
+              docker run --rm "${image}"
+            done
+          else
+            echo "Skipping autosklearn examples on pull_request."
+          fi
