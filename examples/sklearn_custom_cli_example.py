@@ -14,7 +14,10 @@ from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
-from examples.custom_sklearn_transformer import MultiplyByConstant
+try:
+    from examples.custom_sklearn_transformer import MultiplyByConstant
+except ModuleNotFoundError:
+    from custom_sklearn_transformer import MultiplyByConstant
 
 
 def main() -> None:
