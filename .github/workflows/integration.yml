@@ -74,12 +74,12 @@ jobs:
       - name: Require uv.lock
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev + tf_legacy)
-        run: uv sync --extra dev --extra tf_legacy
+      - name: Install deps (dev + cli + runtime + tf_legacy)
+        run: uv sync --extra dev --extra cli --extra runtime --extra tf_legacy
 
       - name: Run TensorFlow integration tests
         run: |
-          uv run pytest -q -m "integration and not e2e" -k tensorflow \
+          uv run pytest -q tests/integration_tests -m "integration and not e2e" -k tensorflow \
             --cov=onnx_converter \
             --cov-report=xml:coverage-tf.xml \
             --cov-report=term \
