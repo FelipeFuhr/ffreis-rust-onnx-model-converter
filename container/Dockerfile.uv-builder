@@ -6,6 +6,8 @@ ARG PYTHON_VERSION=3.12
 
 USER root
 
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       python3 \
@@ -30,7 +32,7 @@ RUN test -s uv.lock || (echo "uv.lock is required for container builds"; exit 1)
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:${PATH}"
 
-RUN chown -R appuser:appgroup /opt/venv
+RUN chown -R appuser:appgroup /opt/venv /opt/uv-python
 
 USER appuser:appgroup
 WORKDIR /app

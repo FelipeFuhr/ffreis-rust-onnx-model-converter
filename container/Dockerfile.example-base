@@ -19,8 +19,6 @@ RUN apt-get update && \
 ENV VIRTUAL_ENV=/opt/examples-venv
 ENV PATH="/opt/examples-venv/bin:${PATH}"
 
-COPY --chown=appuser:appgroup --chmod=0444 . /app
-RUN find /app -type d -exec chmod 0555 {} + && \
-    chmod -R a-w /app
+COPY --chown=appuser:appgroup . /app
 
 USER appuser
