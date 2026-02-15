@@ -113,6 +113,7 @@ strict = true
 ignore_missing_imports = true
 exclude = "(venv|.venv|tests/helpers)"
 files = ["src"]
+mypy_path = ["src"]
 
 [[tool.mypy.overrides]]
 module = ["onnx_converter.cli.cli"]
