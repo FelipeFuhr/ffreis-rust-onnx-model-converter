@@ -137,19 +137,29 @@ def convert_sklearn_to_onnx(
 
 def convert_custom_file_to_onnx(
     model_path: Path,
-    output_path: Path,
+    output_path: Path | None = None,
     *,
     model_type: str | None = None,
     plugin_name: str | None = None,
     plugin_modules: Iterable[str] | None = None,
     options: Mapping[str, object] | None = None,
 ) -> Path:
-    """Convert model artifact through plugin-based adapter resolution."""
+    """Convert model artifact through plugin-based adapter resolution.
+
+    Parameters
+    ----------
+    model_path : Path
+        Source model artifact path.
+    output_path : Path | None, default=None
+        ONNX output path. When omitted, defaults to
+        ``model_path.with_suffix(".onnx")``.
+    """
     from .api import convert_custom_file_to_onnx as _impl
 
+    resolved_output_path = output_path or model_path.with_suffix(".onnx")
     return _impl(
         model_path=model_path,
-        output_path=output_path,
+        output_path=resolved_output_path,
         model_type=model_type,
         plugin_name=plugin_name,
         plugin_modules=plugin_modules,

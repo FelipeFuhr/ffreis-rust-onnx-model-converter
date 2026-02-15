@@ -86,7 +86,7 @@ repos:
     hooks:
       - id: pytest-fast
         name: pytest (fast)
-        entry: .venv/bin/python -m pytest -q -m "not slow"
+        entry: .venv/bin/python -m pytest -q tests/unit_tests
         language: system
         pass_filenames: false
         stages: [pre-push]

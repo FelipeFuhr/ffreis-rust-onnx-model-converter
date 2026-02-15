@@ -136,7 +136,7 @@ convention = "numpy"
 "scripts/**/*.py" = ["D", "ANN"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit_tests", "tests/integration_tests", "tests/e2e_tests"]
 addopts = "--strict-markers --tb=short -ra --import-mode=importlib"
 markers = [
     "unit: fast, isolated unit tests",

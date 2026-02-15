@@ -35,7 +35,7 @@ jobs:
 
       - name: Run e2e tests
         run: |
-          uv run pytest -q -m e2e \
+          uv run pytest -q tests/e2e_tests \
             --cov=onnx_converter \
             --cov-report=xml:coverage.xml \
             --cov-report=term \

@@ -62,15 +62,15 @@ test: ## Run tests
 
 .PHONY: test-unit
 test-unit: ## Run unit tests only
-	$(VENV_DIR)/bin/pytest -q -m "unit"
+	$(VENV_DIR)/bin/pytest -q tests/unit_tests
 
 .PHONY: test-integration
 test-integration: ## Run integration tests only
-	$(VENV_DIR)/bin/pytest -q -m "integration and not e2e"
+	$(VENV_DIR)/bin/pytest -q tests/integration_tests
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests only
-	$(VENV_DIR)/bin/pytest -q -m e2e
+	$(VENV_DIR)/bin/pytest -q tests/e2e_tests
 
 .PHONY: check
 check: lint test-unit ## Run lint and fast tests
@@ -78,7 +78,7 @@ check: lint test-unit ## Run lint and fast tests
 .PHONY: coverage
 coverage: ## Generate coverage report
 	mkdir -p coverage
-	$(VENV_DIR)/bin/pytest -m "unit" --cov=onnx_converter --cov-report=xml:coverage.xml --cov-report=html:coverage/html --cov-report=term
+	$(VENV_DIR)/bin/pytest tests/unit_tests --cov=onnx_converter --cov-report=xml:coverage.xml --cov-report=html:coverage/html --cov-report=term
 
 .PHONY: deps-sync-check
 deps-sync-check: ## Verify requirements.txt is synced with pyproject.toml
