@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import cast
 
 __version__ = "0.1.0"
 
 
 def convert_pytorch_to_onnx(
-    model: Any,
+    model: object,
     output_path: str,
     input_shape: tuple[int, ...],
     input_names: list[str] | None = None,
     output_names: list[str] | None = None,
     dynamic_axes: dict[str, dict[int, str]] | None = None,
     opset_version: int = 14,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a PyTorch model to ONNX via lazy backend import.
 
@@ -58,11 +58,11 @@ def convert_pytorch_to_onnx(
 
 
 def convert_tensorflow_to_onnx(
-    model: Any,
+    model: object,
     output_path: str,
-    input_signature: Any = None,
+    input_signature: object = None,
     opset_version: int = 14,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a TensorFlow/Keras model to ONNX via lazy backend import.
 
@@ -72,7 +72,7 @@ def convert_tensorflow_to_onnx(
         TensorFlow/Keras model object or compatible reference.
     output_path : str
         Destination ONNX path.
-    input_signature : Any, default=None
+    input_signature : object, default=None
         Optional TensorFlow input signature.
     opset_version : int, default=14
         Target ONNX opset.
@@ -89,18 +89,18 @@ def convert_tensorflow_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        input_signature=input_signature,
+        input_signature=cast(list[object] | None, input_signature),
         opset_version=opset_version,
         **kwargs,
     )
 
 
 def convert_sklearn_to_onnx(
-    model: Any,
+    model: object,
     output_path: str,
-    initial_types: Any = None,
+    initial_types: object = None,
     target_opset: int | None = None,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a scikit-learn model to ONNX via lazy backend import.
 
@@ -110,7 +110,7 @@ def convert_sklearn_to_onnx(
         Scikit-learn estimator or pipeline.
     output_path : str
         Destination ONNX path.
-    initial_types : Any, default=None
+    initial_types : object, default=None
         Optional type hints for ``skl2onnx`` conversion.
     target_opset : int | None, default=None
         Optional ONNX opset override.
@@ -127,7 +127,7 @@ def convert_sklearn_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        initial_types=initial_types,
+        initial_types=cast(list[tuple[str, object]] | None, initial_types),
         target_opset=target_opset,
         **kwargs,
     )

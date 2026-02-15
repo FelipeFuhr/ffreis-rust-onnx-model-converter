@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
 
 from onnx_converter.application.options import ParityOptions, PostprocessOptions
 
@@ -12,7 +12,7 @@ from onnx_converter.application.options import ParityOptions, PostprocessOptions
 class ModelLoader(Protocol):
     """Load model artifact into in-memory object."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> Any:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
         """Load model from path."""
 
 
@@ -21,9 +21,9 @@ class ModelConverter(Protocol):
 
     def convert(
         self,
-        model: Any,
+        model: object,
         output_path: Path,
-        options: Mapping[str, Any],
+        options: Mapping[str, object],
     ) -> Path:
         """Convert model and return ONNX path."""
 
@@ -33,10 +33,10 @@ class ParityChecker(Protocol):
 
     def check(
         self,
-        model: Any,
+        model: object,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Mapping[str, Any] | None = None,
+        context: Mapping[str, object] | None = None,
     ) -> None:
         """Raise on mismatch."""
 

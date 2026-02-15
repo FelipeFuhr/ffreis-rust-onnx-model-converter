@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -88,7 +87,7 @@ class SklearnConversionConfig(BaseModel):
 
     output_path: Path
     target_opset: int | None = Field(default=None, ge=1)
-    initial_types: list[tuple[str, Any]] | None = None
+    initial_types: list[tuple[str, object]] | None = None
 
 
 class SklearnPluginOptions(BaseModel):
@@ -108,7 +107,7 @@ class SklearnPluginOptions(BaseModel):
 
     @field_validator("metadata", mode="before")
     @classmethod
-    def _normalize_metadata(cls, value: Any) -> dict[str, str] | None:
+    def _normalize_metadata(cls, value: object) -> dict[str, str] | None:
         if value is None:
             return None
         if not isinstance(value, dict):
@@ -124,4 +123,4 @@ class PluginResolutionConfig(BaseModel):
     model_path: Path
     model_type: str | None = None
     plugin_name: str | None = None
-    options: dict[str, Any] = Field(default_factory=dict)
+    options: dict[str, object] = Field(default_factory=dict)

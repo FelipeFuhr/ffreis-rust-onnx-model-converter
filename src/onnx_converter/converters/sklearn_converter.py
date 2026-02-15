@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
 
 from pydantic import ValidationError
 from skl2onnx import convert_sklearn
@@ -17,9 +16,9 @@ from onnx_converter.schemas import SklearnConversionConfig
 def convert_sklearn_to_onnx(
     model: object,
     output_path: str,
-    initial_types: list[tuple[str, Any]] | None = None,
+    initial_types: list[tuple[str, object]] | None = None,
     target_opset: int | None = None,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a scikit-learn model or pipeline to ONNX format.
 
@@ -29,7 +28,7 @@ def convert_sklearn_to_onnx(
         Scikit-learn model or pipeline instance to convert.
     output_path : str
         Path where the ONNX model will be written.
-    initial_types : list[tuple[str, Any]], optional
+    initial_types : list[tuple[str, object]], optional
         Input type declarations expected by ``skl2onnx``.
         When omitted, input types are inferred from ``model.n_features_in_``.
     target_opset : int, optional

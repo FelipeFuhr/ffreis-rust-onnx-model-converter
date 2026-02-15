@@ -132,7 +132,6 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "src/onnx_converter/cli/cli.py" = ["B008"]
-"src/**/*.py" = ["ANN"]
 "examples/**/*.py" = ["D", "ANN"]
 "scripts/**/*.py" = ["D", "ANN"]
 

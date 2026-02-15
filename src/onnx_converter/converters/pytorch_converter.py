@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
 
 import torch
 import torch.onnx
@@ -22,7 +21,7 @@ def convert_pytorch_to_onnx(
     output_names: list[str] | None = None,
     dynamic_axes: dict[str, dict[int, str]] | None = None,
     opset_version: int = 14,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a PyTorch model to ONNX format.
 

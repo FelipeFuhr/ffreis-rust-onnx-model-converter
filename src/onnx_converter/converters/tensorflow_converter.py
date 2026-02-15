@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
 import tensorflow as tf
 import tf2onnx
@@ -41,7 +40,7 @@ def _convert_saved_model(
     output_path: str,
     input_signature: list[tf.TensorSpec] | None,
     opset_version: int,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> None:
     tf2onnx.convert.from_saved_model(
         model_path,
@@ -57,7 +56,7 @@ def _convert_keras_model(
     output_path: str,
     input_signature: list[tf.TensorSpec] | None,
     opset_version: int,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> None:
     _ensure_keras_output_names(model)
     resolved_signature = input_signature or _build_default_signature(model)
@@ -76,7 +75,7 @@ def convert_tensorflow_to_onnx(
     output_path: str,
     input_signature: list[tf.TensorSpec] | None = None,
     opset_version: int = 14,
-    **kwargs: Any,
+    **kwargs: object,
 ) -> str:
     """Convert a TensorFlow or Keras model to ONNX format.
 
