@@ -34,7 +34,7 @@ jobs:
       - name: Generate coverage report for Sonar
         run: |
           set -euo pipefail
-          uv run pytest -m "unit" \
+          uv run pytest tests/unit_tests \
             --cov=onnx_converter \
             --cov-report=xml:coverage.xml \
             --cov-report=term \

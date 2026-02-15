@@ -54,51 +54,39 @@ repos:
     hooks:
       - id: ruff-lint
         name: ruff (lint)
-        entry: uv run ruff check --fix
+        entry: .venv/bin/python -m ruff check --fix
         language: system
         types: [python]
         pass_filenames: true
 
       - id: ruff-format
         name: ruff (format)
-        entry: uv run ruff format
+        entry: .venv/bin/python -m ruff format
         language: system
         types: [python]
         pass_filenames: true
 
   # -------------------------------------------------------------------
-  # 4) (Optional) Black if you still want it (ruff format can replace it)
-  # -------------------------------------------------------------------
-  - repo: local
-    hooks:
-      - id: black
-        name: black
-        entry: uv run black
-        language: system
-        types: [python]
-        pass_filenames: true
-
-  # -------------------------------------------------------------------
-  # 5) Type checking (usually better at pre-push than pre-commit)
+  # 4) Type checking
   # -------------------------------------------------------------------
   - repo: local
     hooks:
       - id: mypy
         name: mypy
-        entry: uv run mypy
+        entry: .venv/bin/python -m mypy src
         language: system
         pass_filenames: false
-        stages: [pre-push]
+        stages: [pre-commit, pre-push]
         args: ["--pretty", "--show-error-codes"]
 
   # -------------------------------------------------------------------
-  # 6) Tests (put on pre-push to keep commits snappy)
+  # 5) Tests (put on pre-push to keep commits snappy)
   # -------------------------------------------------------------------
   - repo: local
     hooks:
       - id: pytest-fast
         name: pytest (fast)
-        entry: uv run pytest -q -m "not slow"
+        entry: .venv/bin/python -m pytest -q tests/unit_tests
         language: system
         pass_filenames: false
         stages: [pre-push]
@@ -129,7 +117,7 @@ repos:
     hooks:
       - id: uv-lock-check
         name: uv lock --check
-        entry: bash -c 'if [ -f uv.lock ]; then uv lock --check; else echo "uv.lock not found, skipping uv lock --check"; fi'
+        entry: bash -c 'if [ -f uv.lock ]; then UV_CACHE_DIR=/tmp/uv-cache uv lock --check; else echo "uv.lock not found, skipping uv lock --check"; fi'
         language: system
         pass_filenames: false
         stages: [pre-commit, pre-push]

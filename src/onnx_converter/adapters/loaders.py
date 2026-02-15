@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Protocol
 
 from onnx_converter.errors import (
     DependencyError,
@@ -41,7 +41,7 @@ def _torch_load_unsafe(torch_module: _TorchLoadModule, model_path: Path) -> obje
 class TorchModelLoader:
     """Load TorchScript or torch checkpoints."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> Any:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
         """Load a TorchScript model or checkpoint artifact.
 
         Parameters
@@ -89,7 +89,7 @@ class TorchModelLoader:
 class TensorflowModelLoader:
     """Load TensorFlow SavedModel path or Keras model file."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> Any:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
         """Load a TensorFlow SavedModel directory or Keras model file.
 
         Parameters
@@ -120,7 +120,7 @@ class TensorflowModelLoader:
 class SklearnModelLoader:
     """Load sklearn-like serialized artifacts."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> Any:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
         """Load a serialized scikit-learn artifact.
 
         Parameters

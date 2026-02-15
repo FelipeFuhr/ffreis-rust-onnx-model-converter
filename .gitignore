@@ -54,3 +54,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Coverage
+.coverage
+.coverage.*
+coverage.xml
+coverage-*.xml
+htmlcov/
+.pytest_cache/
