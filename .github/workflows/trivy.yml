@@ -129,7 +129,7 @@ jobs:
             rm -f "$tar"
           done
       - name: Upload Trivy JSON reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: trivy-json-reports
           path: trivy-results/*.json
