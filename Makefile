@@ -96,14 +96,6 @@ coverage: ## Generate coverage report
 	mkdir -p coverage
 	$(VENV_DIR)/bin/pytest tests/unit_tests --cov=onnx_converter --cov-report=xml:coverage.xml --cov-report=html:coverage/html --cov-report=term
 
-.PHONY: deps-sync-check
-deps-sync-check: ## Verify requirements.txt is synced with pyproject.toml
-	$(VENV_DIR)/bin/python scripts/check_dependencies_sync.py
-
-.PHONY: deps-sync-generate
-deps-sync-generate: ## Regenerate requirements.txt from pyproject.toml
-	$(VENV_DIR)/bin/python scripts/generate_requirements.py
-
 .PHONY: architecture-check
 architecture-check: ## Run architecture and complexity checks
 	$(VENV_DIR)/bin/python scripts/check_architecture.py
@@ -111,7 +103,7 @@ architecture-check: ## Run architecture and complexity checks
 	$(VENV_DIR)/bin/mypy src/onnx_converter/application
 
 .PHONY: ci-local
-ci-local: deps-sync-check architecture-check lint test-unit coverage ## Approximate default CI checks locally
+ci-local: architecture-check lint test-unit coverage ## Approximate default CI checks locally
 
 .PHONY: clean
 clean: ## Remove caches and venv

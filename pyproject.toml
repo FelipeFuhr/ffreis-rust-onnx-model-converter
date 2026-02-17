@@ -64,6 +64,7 @@ optuna = [
 ]
 dev = [
     "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.6.0",
     "black>=24.0.0",
@@ -162,6 +163,7 @@ markers = [
     "unit: fast, isolated unit tests",
     "integration: integration tests that may require optional deps",
     "e2e: end-to-end tests that exercise the public CLI flow",
+    "asyncio: async tests executed with pytest-asyncio",
 ]
 
 [tool.coverage.run]

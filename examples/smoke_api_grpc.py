@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import time
-import urllib.request
+from urllib.parse import urlsplit
 
 import grpc
 
@@ -11,13 +12,31 @@ from converter_grpc import converter_pb2
 
 
 def _wait_http_ok(url: str, timeout_seconds: float = 40.0) -> bytes:
+    parts = urlsplit(url)
+    if parts.scheme not in {"http", "https"}:
+        raise ValueError("only http/https URLs are allowed")
+    if not parts.netloc:
+        raise ValueError("URL must include a network location")
+    path = parts.path or "/"
+    if parts.query:
+        path = f"{path}?{parts.query}"
+
     deadline = time.time() + timeout_seconds
     last_error: Exception | None = None
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=3.0) as response:  # noqa: S310
-                if response.status == 200:
-                    return response.read()
+            connection_cls = (
+                http.client.HTTPSConnection
+                if parts.scheme == "https"
+                else http.client.HTTPConnection
+            )
+            connection = connection_cls(parts.netloc, timeout=3.0)
+            connection.request("GET", path)
+            response = connection.getresponse()
+            body = response.read()
+            connection.close()
+            if response.status == 200:
+                return body
         except Exception as exc:  # noqa: BLE001
             last_error = exc
         time.sleep(0.5)

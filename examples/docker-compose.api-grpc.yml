@@ -18,7 +18,7 @@ services:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=3)"
+        - "import http.client; c=http.client.HTTPConnection('127.0.0.1', 8090, timeout=3); c.request('GET','/healthz'); r=c.getresponse(); c.close(); raise SystemExit(0 if r.status == 200 else 1)"
       interval: 3s
       timeout: 3s
       retries: 30

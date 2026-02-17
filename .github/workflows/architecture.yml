@@ -31,9 +31,6 @@ jobs:
       - name: Install deps
         run: uv sync --extra dev
 
-      - name: Dependency sync check
-        run: uv run python scripts/check_dependencies_sync.py
-
       - name: Architecture boundaries check
         run: uv run python scripts/check_architecture.py
 

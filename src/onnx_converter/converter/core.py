@@ -84,7 +84,7 @@ def normalize_sha256(value: str | None) -> str | None:
     if not normalized:
         return None
     if len(normalized) != 64 or any(ch not in "0123456789abcdef" for ch in normalized):
-        raise ValueError("expected_sha256 must be a 64-character lowercase hex digest")
+        raise ValueError("expected_sha256 must be a 64-character hex digest")
     return normalized
 
 
@@ -93,6 +93,19 @@ def write_bytes_to_file(path: Path, data: bytes) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return digest_bytes(data)
+
+
+def safe_input_filename(filename: str) -> str:
+    """Return a filesystem-safe artifact filename for temp-dir writes."""
+    raw = filename.strip()
+    if not raw:
+        return "artifact.bin"
+    # Normalize Windows-style separators before basename extraction.
+    normalized = raw.replace("\\", "/")
+    candidate = Path(normalized).name
+    if candidate in {"", ".", ".."}:
+        return "artifact.bin"
+    return candidate
 
 
 def run_conversion(
@@ -145,7 +158,7 @@ def convert_artifact_bytes(
     expected_sha = normalize_sha256(request.expected_sha256)
     with TemporaryDirectory(prefix="converter-") as tmp:
         tmp_dir = Path(tmp)
-        input_name = request.filename or "artifact.bin"
+        input_name = safe_input_filename(request.filename)
         input_path = tmp_dir / input_name
         input_sha = write_bytes_to_file(input_path, data)
         if expected_sha is not None and input_sha != expected_sha:

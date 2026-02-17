@@ -142,12 +142,11 @@ At minimum, plugin additions should pass:
 - lint (`ruff`, `mypy`),
 - unit tests,
 - architecture checks,
-- dependency sync checks.
+- security/dependency scans.
 
 If plugin adds new optional dependencies:
 
 - add them to `pyproject.toml` extras,
-- regenerate `requirements.txt` via `scripts/generate_requirements.py`,
 - wire example docker image if needed.
 
 ## Design Rules for Maintainability

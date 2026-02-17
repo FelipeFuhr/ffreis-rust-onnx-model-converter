@@ -140,8 +140,6 @@ make ci-local
 
 - `make test-unit`: run fast unit-oriented suite (`-m "not integration"`)
 - `make test-integration`: run integration-marked tests
-- `make deps-sync-check`: verify `requirements.txt` is synced with `pyproject.toml`
-- `make deps-sync-generate`: regenerate `requirements.txt` from `pyproject.toml`
 - `make architecture-check`: boundary + complexity + strict mypy for application layer
 
 ## CI overview
@@ -149,7 +147,7 @@ make ci-local
 - `build-python.yml`: matrix tests/package build (`3.13`, `3.11`, `3.10`)
 - `lint.yml`: ruff + mypy
 - `coverage.yml`: coverage report (threshold configured in `pyproject.toml`)
-- `architecture.yml`: dependency sync + architecture + complexity checks
+- `architecture.yml`: architecture + complexity checks
 - `integration.yml`: scheduled/manual integration tests
 - `examples.yml`: dockerized example runs (fast PR set + heavier scheduled set)
 

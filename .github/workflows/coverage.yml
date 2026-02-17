@@ -34,8 +34,10 @@ jobs:
           set -euo pipefail
           test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev + cli)
-        run: uv sync --extra dev --extra cli
+      - name: Install deps (dev + cli + server + grpc)
+        run: |
+          uv sync --extra dev --extra cli --extra server --extra grpc
+          uv pip install httpx
 
       - name: Generate coverage (Makefile)
         run: |

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 from typing import Annotated
 
@@ -13,6 +14,8 @@ from pydantic import BaseModel, ConfigDict
 
 from onnx_converter.converter.core import ConversionRequest, convert_artifact_bytes
 from onnx_converter.errors import ConversionError
+
+logger = logging.getLogger(__name__)
 
 
 class HealthResponse(BaseModel):
@@ -84,8 +87,9 @@ def create_app() -> FastAPI:
                 detail="uploaded artifact is empty",
             )
         try:
+            normalized_framework = framework.strip().lower()
             request = ConversionRequest(
-                framework=framework,  # type: ignore[arg-type]
+                framework=normalized_framework,  # type: ignore[arg-type]
                 filename=artifact_name,
                 expected_sha256=expected_sha256,
                 input_shape=_parse_input_shape(input_shape),
@@ -100,9 +104,10 @@ def create_app() -> FastAPI:
                 detail=str(exc),
             ) from exc
         except Exception as exc:  # pragma: no cover
+            logger.exception("unexpected error during HTTP conversion upload")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(exc),
+                detail="internal server error",
             ) from exc
 
         headers = {

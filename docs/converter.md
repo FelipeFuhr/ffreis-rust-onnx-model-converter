@@ -7,7 +7,7 @@ integrity metadata.
 ## Install extras
 
 ```bash
-pip install -e ".[server,grpc]"
+uv sync --extra server --extra grpc
 ```
 
 ## HTTP mode
@@ -31,6 +31,9 @@ Endpoint:
     - `n_features` (optional; required for `sklearn`)
     - `opset_version` (optional, default `14`)
     - `allow_unsafe` (optional, default `false`)
+  - notes:
+    - `framework` is normalized via `strip().lower()`
+    - unsafe filenames are sanitized to a safe basename before temp-file writes
 
 Response:
 
@@ -39,6 +42,11 @@ Response:
   - `X-Input-SHA256`
   - `X-Output-SHA256`
   - `X-Output-Filename`
+
+HTTP error mapping:
+
+- `400` for request/validation/conversion domain errors (`ValueError`, `ConversionError`)
+- `500` for unexpected server errors (generic detail: `internal server error`)
 
 ## gRPC mode
 
@@ -60,6 +68,12 @@ Flow:
    - first reply frame with `ConvertResult` metadata
    - following reply frames as ONNX byte chunks
 
+gRPC notes:
+
+- `framework` is normalized via `strip().lower()` before conversion
+- request/validation/conversion domain errors map to `INVALID_ARGUMENT`
+- unexpected server errors map to `INTERNAL`
+
 ## Stub generation
 
 ```bash
@@ -67,6 +81,18 @@ make grpc-generate
 make grpc-check
 make test-grpc-parity
 ```
+
+Stub generation uses pinned tool/runtime versions for reproducibility:
+
+- `grpcio-tools==1.78.0`
+- `grpcio==1.78.0`
+- `protobuf==6.33.5`
+
+Optional overrides:
+
+- `GRPCIO_TOOLS_VERSION`
+- `GRPCIO_VERSION`
+- `PROTOBUF_VERSION`
 
 ## Docker Compose smoke example
 

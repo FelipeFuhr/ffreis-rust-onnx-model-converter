@@ -114,6 +114,5 @@ class MyPlugin:
 
 - `scripts/check_architecture.py`: import boundary checks.
 - `scripts/check_orchestrator_complexity.py`: use-case complexity guard.
-- `scripts/check_dependencies_sync.py`: `requirements.txt` and `pyproject.toml` sync.
 
 These are executed in `architecture.yml`.

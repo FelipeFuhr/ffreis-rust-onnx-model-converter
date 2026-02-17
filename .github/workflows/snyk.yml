@@ -7,7 +7,6 @@ on:
     paths:
       - "src/**"
       - "pyproject.toml"
-      - "requirements.txt"
       - "uv.lock"
       - ".github/workflows/snyk.yml"
   push:
@@ -15,7 +14,6 @@ on:
     paths:
       - "src/**"
       - "pyproject.toml"
-      - "requirements.txt"
       - "uv.lock"
       - ".github/workflows/snyk.yml"
   schedule:
@@ -41,11 +39,24 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install Python dependencies for Snyk resolution
+      - name: Set up uv
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b
+
+      - name: Export locked dependencies for Snyk resolution
         run: |
           set -euo pipefail
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
+          mkdir -p snyk-results
+          uv export \
+            --format requirements.txt \
+            --frozen \
+            --no-dev \
+            --extra cli \
+            --extra runtime \
+            --extra torch \
+            --extra sklearn \
+            --extra optuna \
+            --output-file snyk-results/requirements.locked.txt
 
       - name: Setup Node.js (for Snyk CLI)
         uses: actions/setup-node@v6
@@ -58,15 +69,14 @@ jobs:
           npm install -g snyk
           snyk --version
 
-      - name: Snyk Open Source scan (requirements.txt)
+      - name: Snyk Open Source scan (uv export from lock)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           set -euo pipefail
-          mkdir -p snyk-results
-          test -s requirements.txt
+          test -s snyk-results/requirements.locked.txt
           snyk test \
-            --file=requirements.txt \
+            --file=snyk-results/requirements.locked.txt \
             --package-manager=pip \
             --skip-unresolved \
             --sarif-file-output=snyk-results/oss.sarif || true

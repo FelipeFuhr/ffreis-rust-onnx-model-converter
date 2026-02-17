@@ -13,6 +13,7 @@ import grpc
 from converter_grpc import converter_pb2 as _converter_pb2
 from converter_grpc import converter_pb2_grpc as _converter_pb2_grpc
 from onnx_converter.converter.core import ConversionRequest, convert_artifact_bytes
+from onnx_converter.errors import ConversionError
 
 converter_pb2: Any = cast(Any, _converter_pb2)
 converter_pb2_grpc: Any = cast(Any, _converter_pb2_grpc)
@@ -89,6 +90,8 @@ class ConverterGrpcService:
         try:
             input_sha, outcome = convert_artifact_bytes(b"".join(chunks), request)
         except ValueError as exc:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+        except ConversionError as exc:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
         except Exception as exc:
             context.abort(grpc.StatusCode.INTERNAL, str(exc))
