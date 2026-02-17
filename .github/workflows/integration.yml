@@ -34,7 +34,7 @@ jobs:
         run: test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
       - name: Install deps (dev + all + server + grpc)
-        run: uv sync --extra dev --extra all --extra server --extra grpc
+        run: uv sync --extra dev --extra all --extra server --extra grpc --extra sklearn
 
       - name: Run integration tests
         run: |
