@@ -17,6 +17,8 @@ concurrency:
 jobs:
   deepsource:
     runs-on: ubuntu-latest
+    env:
+      DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
 
     steps:
       - uses: actions/checkout@v6
@@ -37,26 +39,27 @@ jobs:
           set -euo pipefail
           test -s uv.lock || (echo "uv.lock missing — run uv lock"; exit 1)
 
-      - name: Install deps (dev + cli)
+      - name: Install deps (dev + cli + server + grpc)
         run: |
           set -euo pipefail
-          uv sync --extra dev --extra cli
+          uv sync --extra dev --extra cli --extra server --extra grpc
 
       - name: Generate coverage report
         run: |
           set -euo pipefail
+          ./scripts/generate_grpc_stubs.sh
           make coverage
           test -s coverage.xml
 
       - name: Upload coverage to DeepSource
-        if: ${{ secrets.DEEPSOURCE_DSN != '' }}
+        if: ${{ env.DEEPSOURCE_DSN != '' }}
         uses: deepsourcelabs/test-coverage-action@4284bb73a04adb39faaa6bfcc2d0e3dd137ffed7
         with:
           key: python
           coverage-file: coverage.xml
-          dsn: ${{ secrets.DEEPSOURCE_DSN }}
+          dsn: ${{ env.DEEPSOURCE_DSN }}
 
       - name: DeepSource DSN not configured
-        if: ${{ secrets.DEEPSOURCE_DSN == '' }}
+        if: ${{ env.DEEPSOURCE_DSN == '' }}
         run: |
           echo "DEEPSOURCE_DSN is not set. Add it as a repository secret to enable coverage upload."
