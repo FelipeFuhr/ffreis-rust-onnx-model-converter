@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import logging
 import os
 from collections.abc import Iterable, Iterator
 from concurrent import futures
@@ -17,6 +18,8 @@ except ModuleNotFoundError:  # pragma: no cover
 
 from onnx_converter.converter.core import ConversionRequest, convert_artifact_bytes
 from onnx_converter.errors import ConversionError
+
+logger = logging.getLogger(__name__)
 
 
 def _load_converter_pb2() -> ModuleType | None:
@@ -303,8 +306,9 @@ class ConverterGrpcService:
             context.abort(grpc_runtime.StatusCode.INVALID_ARGUMENT, str(exc))
         except ConversionError as exc:
             context.abort(grpc_runtime.StatusCode.INVALID_ARGUMENT, str(exc))
-        except Exception as exc:
-            context.abort(grpc_runtime.StatusCode.INTERNAL, str(exc))
+        except Exception:
+            logger.exception("unexpected error during gRPC conversion")
+            context.abort(grpc_runtime.StatusCode.INTERNAL, "internal server error")
         yield from _stream_convert_reply(
             pb2,
             input_sha=input_sha,
