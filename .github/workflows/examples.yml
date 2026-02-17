@@ -72,20 +72,41 @@ jobs:
             docker run --rm "${image}"
           done
 
-          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            autosklearn_examples=(
-              "container/examples/Dockerfile.example-autosklearn1 example-autosklearn-v1"
-              "container/examples/Dockerfile.example-autosklearn2 example-autosklearn-v2"
-            )
+  autosklearn-examples:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
 
-            for entry in "${autosklearn_examples[@]}"; do
-              dockerfile="${entry%% *}"
-              image="${entry##* }"
-              echo "Building ${image} from ${dockerfile}"
-              docker build -f "${dockerfile}" -t "${image}" .
-              echo "Running ${image}"
-              docker run --rm "${image}"
-            done
-          else
-            echo "Skipping autosklearn examples on pull_request."
-          fi
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build and run autosklearn examples
+        run: |
+          set -euo pipefail
+
+          base_image="$(grep '^BASE_IMAGE=' container/digests.env | cut -d= -f2)"
+          base_digest="$(grep '^BASE_DIGEST=' container/digests.env | cut -d= -f2)"
+
+          docker build -f container/Dockerfile.base \
+            -t ffreis/base \
+            -t ffreis/base:local \
+            -t localhost/ffreis/base:local \
+            --build-arg BASE_IMAGE="${base_image}" \
+            --build-arg BASE_DIGEST="${base_digest}" .
+          docker build -f container/Dockerfile.base-runner -t ffreis/base-runner:local .
+          docker build -f container/examples/Dockerfile.example-base -t onnx-converter/examples-base:local .
+
+          autosklearn_examples=(
+            "container/examples/Dockerfile.example-autosklearn1 example-autosklearn-v1"
+            "container/examples/Dockerfile.example-autosklearn2 example-autosklearn-v2"
+          )
+
+          for entry in "${autosklearn_examples[@]}"; do
+            dockerfile="${entry%% *}"
+            image="${entry##* }"
+            echo "Building ${image} from ${dockerfile}"
+            docker build -f "${dockerfile}" -t "${image}" .
+            echo "Running ${image}"
+            docker run --rm "${image}"
+          done
