@@ -52,15 +52,15 @@ jobs:
             --build-arg BASE_IMAGE="${base_image}" \
             --build-arg BASE_DIGEST="${base_digest}" .
           docker build -f container/Dockerfile.base-runner -t ffreis/base-runner:local .
-          docker build -f container/Dockerfile.example-base -t onnx-converter/examples-base:local .
+          docker build -f container/examples/Dockerfile.example-base -t onnx-converter/examples-base:local .
 
           fast_examples=(
-            "container/Dockerfile.example-sklearn example-sklearn"
-            "container/Dockerfile.example-compare-sklearn example-compare-sklearn"
-            "container/Dockerfile.example-sklearn-custom-cli example-sklearn-custom-cli"
-            "container/Dockerfile.example-pytorch example-pytorch"
-            "container/Dockerfile.example-tensorflow example-tensorflow"
-            "container/Dockerfile.example-optuna-sklearn example-optuna-sklearn"
+            "container/examples/Dockerfile.example-sklearn example-sklearn"
+            "container/examples/Dockerfile.example-compare-sklearn example-compare-sklearn"
+            "container/examples/Dockerfile.example-sklearn-custom-cli example-sklearn-custom-cli"
+            "container/examples/Dockerfile.example-pytorch example-pytorch"
+            "container/examples/Dockerfile.example-tensorflow example-tensorflow"
+            "container/examples/Dockerfile.example-optuna-sklearn example-optuna-sklearn"
           )
 
           for entry in "${fast_examples[@]}"; do
@@ -74,8 +74,8 @@ jobs:
 
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
             autosklearn_examples=(
-              "container/Dockerfile.autosklearn1 example-autosklearn-v1"
-              "container/Dockerfile.autosklearn2 example-autosklearn-v2"
+              "container/examples/Dockerfile.example-autosklearn1 example-autosklearn-v1"
+              "container/examples/Dockerfile.example-autosklearn2 example-autosklearn-v2"
             )
 
             for entry in "${autosklearn_examples[@]}"; do

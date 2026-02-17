@@ -58,6 +58,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+        exclude: ^src/converter_grpc/
 
       - id: ruff-format
         name: ruff (format)
@@ -65,6 +66,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+        exclude: ^src/converter_grpc/
 
   # -------------------------------------------------------------------
   # 4) Type checking

@@ -43,13 +43,21 @@ tensorflow = [
     "tf2onnx>=1.16.1; python_version < '3.13'",
 ]
 sklearn = [
-    "scikit-learn>=1.5.2,<1.8; python_version < '3.11'",
     "scikit-learn>=1.8.0; python_version >= '3.11'",
-    "skl2onnx>=1.20.0",
+    "skl2onnx>=1.20.0; python_version >= '3.11'",
     # strongly recommended for loading:
-    "joblib>=1.5.3",
+    "joblib>=1.5.3; python_version >= '3.11'",
     # recommended for safer sklearn serialization:
-    "skops>=0.13.0",
+    "skops>=0.13.0; python_version >= '3.11'",
+]
+autosklearn = [
+    "auto-sklearn==0.15.0; python_version < '3.11'",
+]
+# TensorFlow example-only dependency set pinned for compatibility.
+tf_example = [
+    "tensorflow>=2.19,<2.20; python_version < '3.13'",
+    "tf2onnx>=1.16,<1.17; python_version < '3.13' and sys_platform != 'win32'",
+    "protobuf>=3.20,<4; python_version < '3.13' and sys_platform != 'win32'",
 ]
 optuna = [
     "optuna>=4.7.0",
@@ -63,6 +71,16 @@ dev = [
     "flake8>=7.0.0",
     "mypy>=1.8.0",
 ]
+server = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "python-multipart>=0.0.9",
+]
+grpc = [
+    "grpcio>=1.66.0",
+    "protobuf>=5.27.0; python_version >= '3.13'",
+    "protobuf>=3.20,<4; python_version < '3.13'",
+]
 all = [
     "onnxruntime>=1.24.1",
     "onnxoptimizer>=0.4.2",
@@ -71,17 +89,14 @@ all = [
     "torch>=2.10.0",
     "torchvision>=0.21.0",
     "onnxscript>=0.6.2",
-    "scikit-learn>=1.5.2,<1.8; python_version < '3.11'",
-    "scikit-learn>=1.8.0; python_version >= '3.11'",
-    "skl2onnx>=1.20.0",
-    "joblib>=1.5.3",
-    "skops>=0.13.0",
     "optuna>=4.7.0",
 ]
 
 [project.scripts]
 # Typer app entrypoint (recommended)
 convert-to-onnx = "onnx_converter.cli:app"
+converter-http = "onnx_converter.converter.http_server:main"
+converter-grpc = "onnx_converter.converter.grpc_server:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -111,7 +126,7 @@ show-source = true
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
-exclude = "(venv|.venv|tests/helpers)"
+exclude = "(venv|.venv|tests/helpers|src/converter_grpc)"
 files = ["src"]
 mypy_path = ["src"]
 
@@ -119,10 +134,15 @@ mypy_path = ["src"]
 module = ["onnx_converter.cli.cli"]
 disallow_untyped_decorators = false
 
+[[tool.mypy.overrides]]
+module = ["onnx_converter.converter.http_server"]
+disallow_untyped_decorators = false
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-extend-exclude = [".venv", "venv", "__pycache__"]
+extend-exclude = [".venv", "venv", "__pycache__", "src/converter_grpc"]
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "D", "ANN"]

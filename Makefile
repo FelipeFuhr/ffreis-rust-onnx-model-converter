@@ -72,8 +72,24 @@ test-integration: ## Run integration tests only
 test-e2e: ## Run end-to-end tests only
 	$(VENV_DIR)/bin/pytest -q tests/e2e_tests
 
+.PHONY: grpc-generate
+grpc-generate: ## Regenerate gRPC protobuf stubs
+	./scripts/generate_grpc_stubs.sh
+
+.PHONY: grpc-check
+grpc-check: ## Verify gRPC protobuf stubs are in sync
+	./scripts/check_grpc_stubs.sh
+
+.PHONY: smoke-api-grpc
+smoke-api-grpc: ## Run docker-compose HTTP + gRPC smoke test
+	docker compose -f examples/docker-compose.api-grpc.yml up --build --abort-on-container-exit --exit-code-from smoke
+
+.PHONY: test-grpc-parity
+test-grpc-parity: ## Run gRPC/API parity tests
+	$(VENV_DIR)/bin/pytest -q tests/integration_tests/test_grpc_parity.py
+
 .PHONY: check
-check: lint test-unit ## Run lint and fast tests
+check: grpc-check lint test-unit ## Run lint and fast tests
 
 .PHONY: coverage
 coverage: ## Generate coverage report
@@ -147,3 +163,6 @@ run-cli: ## Run converter CLI image (use RUN_ARGS=...)
 .PHONY: clean-images
 clean-images: ## Remove converter images
 	$(CONTAINER_COMMAND) rmi $(UV_VENV_IMAGE) $(PACKAGE_IMAGE) $(CLI_IMAGE) || true
+
+.PHONY: ci-grpc
+ci-grpc: grpc-check lint test-grpc-parity ## Run gRPC sync + parity quality gate

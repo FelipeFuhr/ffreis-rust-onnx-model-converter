@@ -7,11 +7,7 @@ FROM onnx-converter/examples-base:local
 # can be resolved on CPython 3.13 with a non-legacy protobuf constraint.
 RUN uv python install 3.12 && \
     uv venv /app/.venv-tf --python 3.12 && \
-    uv pip install --python /app/.venv-tf/bin/python \
-      ".[runtime]" \
-      "tensorflow-cpu>=2.19,<2.20" \
-      "tf2onnx>=1.16,<1.17" \
-      "protobuf>=3.20,<4"
+    uv pip install --python /app/.venv-tf/bin/python ".[runtime,tf_example]"
 
 USER appuser:appgroup
 ENTRYPOINT ["/app/.venv-tf/bin/python", "examples/tensorflow_example.py"]

@@ -1,0 +1,8 @@
+FROM onnx-converter/examples-base:local
+
+RUN uv pip install --python /opt/examples-venv/bin/python \
+      --index-url https://download.pytorch.org/whl/cpu \
+      ".[runtime,torch]"
+
+USER appuser:appgroup
+ENTRYPOINT ["python3", "examples/pytorch_example.py"]
