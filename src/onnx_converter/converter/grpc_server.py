@@ -318,8 +318,13 @@ class ConverterGrpcService:
             output_bytes=outcome.output_bytes,
         )
 
-    # gRPC generated handlers call the RPC method name "Convert".
-    Convert = convert
+    def Convert(
+        self: ConverterGrpcService,
+        request_iterator: Iterable[_ConvertRequestChunkLike],
+        context: ServicerContext,
+    ) -> Iterator[_ConvertReplyChunkLike]:
+        """Compatibility wrapper for generated gRPC stubs expecting `Convert`."""
+        return self.convert(request_iterator, context)
 
 
 def create_server(*, host: str, port: int, max_workers: int = 8) -> _GrpcServer:

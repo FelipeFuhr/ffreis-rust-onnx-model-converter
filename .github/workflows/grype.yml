@@ -66,42 +66,17 @@ jobs:
       - name: Grype scan (SARIF)
         run: |
           set -euo pipefail
-          mkdir -p artifacts grype-results
+          mkdir -p grype-results
 
           images=(ffreis/base ffreis/base-runner ffreis/onnx-converter-uv-venv ffreis/onnx-converter-package ffreis/onnx-converter-cli)
 
           for image in "${images[@]}"; do
             name="${image##*/}"
-            tar="artifacts/${name}.tar"
             out="grype-results/${name}.sarif"
 
-            podman save -o "$tar" "$image"
-            test -s "$tar"
-
-            # Try as OCI archive first (podman default), fallback to docker archive.
-            if oci_output="$(./bin/grype "oci-archive:${tar}" -o sarif --file "$out" --fail-on high 2>&1)"; then
-              echo "$oci_output"
-              :
-            else
-              echo "$oci_output"
-              if docker_output="$(./bin/grype "docker-archive:${tar}" -o sarif --file "$out" --fail-on high 2>&1)"; then
-                echo "$docker_output"
-              else
-                echo "$docker_output"
-                # Large archive layers can exceed stereoscope internal guards on hosted runners.
-                # Trivy job still scans and gates these images; skip only this known tooling failure mode.
-                if grep -Eqi "zip read limit hit|decompression bomb|no space left on device" <<< "${oci_output}${docker_output}"; then
-                  echo "::warning::Skipping Grype scan for ${image} due to archive-size/resource limits."
-                  rm -f "$tar"
-                  continue
-                fi
-                rm -f "$tar"
-                exit 1
-              fi
-            fi
+            ./bin/grype "podman:${image}" -o sarif --file "$out" --fail-on high
 
             test -s "$out"
-            rm -f "$tar"
           done
       - name: Upload Grype SARIF (per image)
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
