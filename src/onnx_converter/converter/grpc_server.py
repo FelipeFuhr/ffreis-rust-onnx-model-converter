@@ -16,10 +16,18 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     grpc = None
 
-from onnx_converter.converter.core import ConversionRequest, convert_artifact_bytes
+from onnx_converter.converter.core import (
+    ConversionRequest,
+    Framework,
+    convert_artifact_bytes,
+)
 from onnx_converter.errors import ConversionError
 
 logger = logging.getLogger(__name__)
+
+
+class _GrpcStatusCodeValue(Protocol):
+    """Marker protocol for gRPC status code value."""
 
 
 def _load_converter_pb2() -> ModuleType | None:
@@ -48,7 +56,7 @@ else:
     class ServicerContext(Protocol):
         """Subset of grpc context API used by this module."""
 
-        def abort(self, code: object, details: str) -> None:
+        def abort(self, code: _GrpcStatusCodeValue, details: str) -> None:
             """Abort RPC with code/details."""
             ...
 
@@ -56,8 +64,8 @@ else:
 class _GrpcStatusCode(Protocol):
     """Subset of grpc.StatusCode enum used by this module."""
 
-    INVALID_ARGUMENT: object
-    INTERNAL: object
+    INVALID_ARGUMENT: _GrpcStatusCodeValue
+    INTERNAL: _GrpcStatusCodeValue
 
 
 class _GrpcServer(Protocol):
@@ -91,7 +99,7 @@ class _GrpcStubs(Protocol):
 
     def add_ConverterServiceServicer_to_server(
         self,
-        servicer: object,
+        servicer: ConverterGrpcService,
         server: _GrpcServer,
     ) -> None:
         """Register converter service implementation."""
@@ -121,11 +129,19 @@ class _ConvertRequestChunkLike(Protocol):
 
 
 class _ConvertResultLike(Protocol):
-    """Marker protocol for generated ConvertResult messages."""
+    """Subset of ConvertResult fields used by tests/callers."""
+
+    input_sha256: str
+    output_sha256: str
+    output_filename: str
+    output_size_bytes: int
 
 
 class _ConvertReplyChunkLike(Protocol):
-    """Marker protocol for generated ConvertReplyChunk messages."""
+    """Subset of ConvertReplyChunk fields used by tests/callers."""
+
+    result: _ConvertResultLike
+    data: bytes
 
 
 class _ConvertResultFactory(Protocol):
@@ -241,13 +257,13 @@ def _collect_convert_payload(
 
 def _build_conversion_request(metadata: _ConvertMetadataLike) -> ConversionRequest:
     """Build domain conversion request from transport metadata."""
-    framework = str(metadata.framework).strip().lower()
+    framework = _parse_framework(str(metadata.framework))
     input_shape = (
         tuple(int(v) for v in metadata.input_shape) if metadata.input_shape else None
     )
     n_features_raw = int(metadata.n_features) if int(metadata.n_features) > 0 else None
     return ConversionRequest(
-        framework=framework,  # type: ignore[arg-type]
+        framework=framework,
         filename=str(metadata.filename or "artifact.bin"),
         expected_sha256=(str(metadata.expected_sha256).strip() or None),
         input_shape=input_shape,
@@ -256,6 +272,14 @@ def _build_conversion_request(metadata: _ConvertMetadataLike) -> ConversionReque
         # gRPC transport does not allow clients to opt into unsafe deserialization.
         allow_unsafe=False,
     )
+
+
+def _parse_framework(value: str) -> Framework:
+    """Parse and validate framework string into typed literal."""
+    normalized = value.strip().lower()
+    if normalized not in {"pytorch", "tensorflow", "sklearn"}:
+        raise ValueError("framework must be one of: pytorch, tensorflow, sklearn")
+    return cast(Framework, normalized)
 
 
 def _stream_convert_reply(

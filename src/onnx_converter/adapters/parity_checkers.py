@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -15,6 +14,7 @@ from onnx_converter.parity import (
     check_tensor_parity,
     load_parity_input,
 )
+from onnx_converter.types import ModelArtifact, OptionMap
 
 
 class TorchParityChecker:
@@ -22,22 +22,22 @@ class TorchParityChecker:
 
     def check(
         self,
-        model: object,
+        model: ModelArtifact,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Mapping[str, object] | None = None,
+        context: OptionMap | None = None,
     ) -> None:
         """Validate parity between PyTorch and ONNX outputs.
 
         Parameters
         ----------
-        model : Any
-            Source PyTorch model object.
+        model : ModelArtifact
+            Source PyTorch model.
         onnx_path : Path
             Generated ONNX model path.
         parity : ParityOptions
             Parity input and tolerance options.
-        context : Mapping[str, object] | None, default=None
+        context : OptionMap | None, default=None
             Reserved extension context.
         """
         del context
@@ -50,13 +50,12 @@ class TorchParityChecker:
             raise ParityError("PyTorch parity check requires torch.") from exc
 
         parity_input = load_parity_input(parity.input_path)
-        torch_model = cast(Callable[[object], object], model)
+        torch_model = cast(_TorchCallableProtocol, model)
         with torch.no_grad():
             output = torch_model(torch.from_numpy(parity_input).to(torch.float32))
             if isinstance(output, (tuple, list)):
                 output = output[0]
-            torch_output = cast(_TorchTensorProtocol, output)
-            expected = np.asarray(torch_output.detach().cpu().numpy(), dtype=np.float32)
+            expected = np.asarray(output.detach().cpu().numpy(), dtype=np.float32)
 
         check_tensor_parity(
             expected=expected,
@@ -73,22 +72,22 @@ class TensorflowParityChecker:
 
     def check(
         self,
-        model: object,
+        model: ModelArtifact,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Mapping[str, object] | None = None,
+        context: OptionMap | None = None,
     ) -> None:
         """Validate parity between TensorFlow and ONNX outputs.
 
         Parameters
         ----------
-        model : Any
-            Source TensorFlow model object.
+        model : ModelArtifact
+            Source TensorFlow model.
         onnx_path : Path
             Generated ONNX model path.
         parity : ParityOptions
             Parity input and tolerance options.
-        context : Mapping[str, object] | None, default=None
+        context : OptionMap | None, default=None
             Reserved extension context.
         """
         del context
@@ -105,8 +104,7 @@ class TensorflowParityChecker:
         output = tensorflow_model(parity_input.astype("float32"), training=False)
         if isinstance(output, (tuple, list)):
             output = output[0]
-        tensorflow_output = cast(_NumpyTensorProtocol, output)
-        expected = np.asarray(tensorflow_output.numpy(), dtype=np.float32)
+        expected = np.asarray(output.numpy(), dtype=np.float32)
 
         check_tensor_parity(
             expected=expected,
@@ -123,22 +121,22 @@ class SklearnParityChecker:
 
     def check(
         self,
-        model: object,
+        model: ModelArtifact,
         onnx_path: Path,
         parity: ParityOptions,
-        context: Mapping[str, object] | None = None,
+        context: OptionMap | None = None,
     ) -> None:
         """Validate parity between sklearn and ONNX outputs.
 
         Parameters
         ----------
-        model : Any
-            Source scikit-learn model object.
+        model : ModelArtifact
+            Source scikit-learn model.
         onnx_path : Path
             Generated ONNX model path.
         parity : ParityOptions
             Parity input and tolerance options.
-        context : Mapping[str, object] | None, default=None
+        context : OptionMap | None, default=None
             Reserved extension context.
         """
         del context
@@ -147,7 +145,7 @@ class SklearnParityChecker:
 
         parity_input = load_parity_input(parity.input_path)
         check_sklearn_parity(
-            model=model,
+            model=cast(_SklearnPredictorProtocol, model),
             onnx_path=onnx_path,
             parity_input=parity_input,
             atol=parity.atol,
@@ -155,17 +153,39 @@ class SklearnParityChecker:
         )
 
 
+class _SklearnPredictorProtocol(Protocol):
+    """Protocol for sklearn predictor model methods used by parity checks."""
+
+    def predict(self, features: np.ndarray) -> np.ndarray:
+        """Predict class labels for feature matrix."""
+
+
 class _TensorflowCallableProtocol(Protocol):
     """Protocol for callable TensorFlow models."""
 
-    def __call__(self, inputs: object, training: bool = False) -> object:
+    def __call__(
+        self, inputs: np.ndarray, training: bool = False
+    ) -> _NumpyTensorProtocol:
         """Run inference on inputs."""
+
+
+class _TorchCallableProtocol(Protocol):
+    """Protocol for callable PyTorch models used by parity checks."""
+
+    def __call__(
+        self, inputs: _TorchTensorProtocol
+    ) -> (
+        _TorchTensorProtocol
+        | tuple[_TorchTensorProtocol, ...]
+        | list[_TorchTensorProtocol]
+    ):
+        """Run inference on tensor inputs."""
 
 
 class _NumpyTensorProtocol(Protocol):
     """Protocol for tensor-like values exposing ``numpy``."""
 
-    def numpy(self) -> object:
+    def numpy(self) -> np.ndarray:
         """Return a NumPy-compatible array."""
 
 
@@ -178,5 +198,5 @@ class _TorchTensorProtocol(Protocol):
     def cpu(self) -> _TorchTensorProtocol:
         """Move tensor to CPU."""
 
-    def numpy(self) -> object:
+    def numpy(self) -> np.ndarray:
         """Return a NumPy-compatible array."""

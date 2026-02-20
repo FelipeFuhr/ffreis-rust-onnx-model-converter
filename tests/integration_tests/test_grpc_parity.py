@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Protocol, cast, no_type_check
 
 import httpx
 import pytest
+from fastapi.testclient import TestClient
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
-from onnx_converter.converter.core import ConversionOutcome
+from onnx_converter.converter.core import ConversionOutcome, ConversionRequest
 from onnx_converter.converter.http_server import create_app
 
 try:
@@ -20,6 +24,7 @@ except (ImportError, ModuleNotFoundError) as exc:
     pytest.skip(f"grpc parity dependencies unavailable: {exc}", allow_module_level=True)
 
 pytestmark = pytest.mark.integration
+_HYPOTHESIS_MAX_EXAMPLES = int(os.getenv("HYPOTHESIS_MAX_EXAMPLES", "30"))
 
 _HTTP_TO_GRPC_SURFACE_MAP: dict[str, str] = {
     "/v1/convert/upload": "Convert",
@@ -32,20 +37,28 @@ _UNMAPPED_GRPC_METHODS: set[str] = set()
 class _AbortRecorder:
     """Capture abort arguments from service context."""
 
-    code: object | None = None
+    code: str | None = None
     details: str | None = None
 
     def abort(self, code: object, details: str) -> None:
         """Raise runtime error on abort."""
-        self.code = code
+        self.code = str(getattr(code, "name", code))
         self.details = details
         code_name = getattr(code, "name", "UNKNOWN")
         raise RuntimeError(f"aborted: {code_name}: {details}")
 
 
-def _fields(message: object) -> set[str]:
+class _DescriptorOwner(Protocol):
+    DESCRIPTOR: object
+
+
+class _FastApiLike(Protocol):
+    def openapi(self) -> dict[str, object]: ...
+
+
+def _fields(message: _DescriptorOwner) -> set[str]:
     """Return protobuf message field names."""
-    descriptor_owner = cast(Any, message)
+    descriptor_owner = cast(object, message)
     return set(descriptor_owner.DESCRIPTOR.fields_by_name.keys())
 
 
@@ -55,22 +68,29 @@ def _grpc_method_names() -> set[str]:
     return {method.name for method in service.methods}
 
 
-def _http_route_paths(application: object) -> set[str]:
+def _http_route_paths(application: _FastApiLike) -> set[str]:
     """Return documented HTTP paths from OpenAPI schema."""
-    app_obj = cast(Any, application)
-    return set(app_obj.openapi().get("paths", {}).keys())
+    openapi = application.openapi()
+    paths = cast(dict[str, object], openapi.get("paths", {}))
+    return set(paths.keys())
 
 
-def _http_upload_form_fields(application: object) -> set[str]:
+def _http_upload_form_fields(application: _FastApiLike) -> set[str]:
     """Return multipart form fields for HTTP conversion upload endpoint."""
-    app_obj = cast(Any, application)
-    openapi = app_obj.openapi()
-    upload_schema = openapi["paths"]["/v1/convert/upload"]["post"]["requestBody"][
-        "content"
-    ]["multipart/form-data"]["schema"]
+    openapi = application.openapi()
+    paths = cast(dict[str, object], openapi["paths"])
+    upload_path = cast(dict[str, object], paths["/v1/convert/upload"])
+    post = cast(dict[str, object], upload_path["post"])
+    request_body = cast(dict[str, object], post["requestBody"])
+    content = cast(dict[str, object], request_body["content"])
+    multipart = cast(dict[str, object], content["multipart/form-data"])
+    upload_schema = cast(dict[str, str], multipart["schema"])
     schema_ref = upload_schema["$ref"]
     schema_name = schema_ref.split("/")[-1]
-    properties = openapi["components"]["schemas"][schema_name]["properties"]
+    components = cast(dict[str, object], openapi["components"])
+    schemas = cast(dict[str, object], components["schemas"])
+    schema = cast(dict[str, object], schemas[schema_name])
+    properties = cast(dict[str, object], schema["properties"])
     return set(properties.keys())
 
 
@@ -145,7 +165,7 @@ async def test_http_and_grpc_success_parity(monkeypatch: pytest.MonkeyPatch) -> 
 
     def fake_convert_artifact_bytes(
         data: bytes,
-        request: object,
+        request: ConversionRequest,
     ) -> tuple[str, ConversionOutcome]:
         _ = request
         assert data == expected_payload
@@ -204,7 +224,7 @@ async def test_http_and_grpc_success_parity(monkeypatch: pytest.MonkeyPatch) -> 
                     converter_pb2.ConvertRequestChunk(data=expected_payload),
                 ]
             ),
-            cast(Any, context),
+            context,
         )
     )
 
@@ -248,13 +268,13 @@ async def test_http_and_grpc_error_category_parity() -> None:
                         )
                     ]
                 ),
-                cast(Any, context),
+                context,
             )
         )
 
     assert http_response.status_code == 400
     assert "empty" in http_response.json()["detail"]
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 @pytest.mark.asyncio
@@ -293,10 +313,95 @@ async def test_http_and_grpc_error_parity_for_input_sha_mismatch() -> None:
                         converter_pb2.ConvertRequestChunk(data=payload),
                     ]
                 ),
-                cast(Any, context),
+                context,
             )
         )
 
     assert http_response.status_code == 400
     assert "mismatch" in http_response.json()["detail"].lower()
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
+
+
+@pytest.mark.property
+@settings(
+    max_examples=_HYPOTHESIS_MAX_EXAMPLES,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    payload=st.binary(min_size=1, max_size=2048),
+    framework=st.sampled_from(["sklearn", "tensorflow", "pytorch"]),
+    n_features=st.integers(min_value=1, max_value=128),
+)
+@no_type_check
+def test_http_and_grpc_property_parity_for_successful_convert(
+    monkeypatch: pytest.MonkeyPatch,
+    payload: bytes,
+    framework: str,
+    n_features: int,
+) -> None:
+    """Property check: transport envelopes stay parity-aligned on success."""
+
+    def fake_convert_artifact_bytes(
+        data: bytes,
+        request: ConversionRequest,
+    ) -> tuple[str, ConversionOutcome]:
+        _ = request
+        assert data == payload
+        return (
+            "insha",
+            ConversionOutcome(
+                output_bytes=b"onnx-binary",
+                output_filename="converted.onnx",
+                output_sha256="outsha",
+                output_size_bytes=len(b"onnx-binary"),
+            ),
+        )
+
+    import onnx_converter.converter.grpc_server as grpc_module
+    import onnx_converter.converter.http_server as http_module
+
+    monkeypatch.setattr(
+        http_module, "convert_artifact_bytes", fake_convert_artifact_bytes
+    )
+    monkeypatch.setattr(
+        grpc_module, "convert_artifact_bytes", fake_convert_artifact_bytes
+    )
+
+    app = create_app()
+    with TestClient(app) as client:
+        http_response = client.post(
+            "/v1/convert/upload",
+            files={"artifact": ("model.bin", payload, "application/octet-stream")},
+            data={"framework": framework, "n_features": str(n_features)},
+        )
+
+    service = ConverterGrpcService()
+    context = _AbortRecorder()
+    grpc_replies = list(
+        service.Convert(
+            iter(
+                [
+                    converter_pb2.ConvertRequestChunk(
+                        metadata=converter_pb2.ConvertMetadata(
+                            framework=framework,
+                            filename="model.bin",
+                            n_features=n_features,
+                        )
+                    ),
+                    converter_pb2.ConvertRequestChunk(data=payload),
+                ]
+            ),
+            context,
+        )
+    )
+
+    assert http_response.status_code == 200
+    assert grpc_replies
+    grpc_result = grpc_replies[0].result
+    grpc_output = b"".join(reply.data for reply in grpc_replies[1:])
+
+    assert http_response.headers["x-input-sha256"] == grpc_result.input_sha256
+    assert http_response.headers["x-output-sha256"] == grpc_result.output_sha256
+    assert http_response.headers["x-output-filename"] == grpc_result.output_filename
+    assert http_response.content == grpc_output

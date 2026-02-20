@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
 from onnx_converter.errors import UnsupportedModelError
+from onnx_converter.types import (
+    ModelArtifact,
+    OptionMap,
+    SklearnInitialTypeLike,
+    TensorSpecLike,
+)
 
 
 class TorchModelConverter:
@@ -14,19 +19,19 @@ class TorchModelConverter:
 
     def convert(
         self,
-        model: object,
+        model: ModelArtifact,
         output_path: Path,
-        options: Mapping[str, object],
+        options: OptionMap,
     ) -> Path:
         """Convert a PyTorch model to ONNX.
 
         Parameters
         ----------
-        model : Any
-            In-memory PyTorch model object.
+        model : ModelArtifact
+            In-memory PyTorch model.
         output_path : Path
             Destination ONNX path.
-        options : Mapping[str, object]
+        options : OptionMap
             Conversion options passed to the backend converter.
 
         Returns
@@ -39,7 +44,11 @@ class TorchModelConverter:
         raw_input_shape = options.get("input_shape")
         if not isinstance(raw_input_shape, (list, tuple)):
             raise UnsupportedModelError("input_shape is required for torch conversion.")
-        input_shape = tuple(int(value) for value in raw_input_shape)
+        if not all(isinstance(value, (int, str)) for value in raw_input_shape):
+            raise UnsupportedModelError(
+                "input_shape must contain integer-compatible dimensions."
+            )
+        input_shape = tuple(int(cast(int | str, value)) for value in raw_input_shape)
 
         raw_input_names = options.get("input_names")
         input_names = (
@@ -83,19 +92,19 @@ class TensorflowModelConverter:
 
     def convert(
         self,
-        model: object,
+        model: ModelArtifact,
         output_path: Path,
-        options: Mapping[str, object],
+        options: OptionMap,
     ) -> Path:
         """Convert a TensorFlow model to ONNX.
 
         Parameters
         ----------
-        model : Any
-            TensorFlow/Keras model object.
+        model : ModelArtifact
+            TensorFlow/Keras model.
         output_path : Path
             Destination ONNX path.
-        options : Mapping[str, object]
+        options : OptionMap
             Conversion options passed to the backend converter.
 
         Returns
@@ -110,7 +119,7 @@ class TensorflowModelConverter:
             raise UnsupportedModelError("opset_version must be an integer.")
         raw_signature = options.get("input_signature")
         input_signature = (
-            cast(list[object], raw_signature)
+            cast(list[TensorSpecLike], raw_signature)
             if isinstance(raw_signature, list)
             else None
         )
@@ -129,19 +138,19 @@ class SklearnModelConverter:
 
     def convert(
         self,
-        model: object,
+        model: ModelArtifact,
         output_path: Path,
-        options: Mapping[str, object],
+        options: OptionMap,
     ) -> Path:
         """Convert a scikit-learn model to ONNX.
 
         Parameters
         ----------
-        model : Any
+        model : ModelArtifact
             Trained scikit-learn estimator or pipeline.
         output_path : Path
             Destination ONNX path.
-        options : Mapping[str, object]
+        options : OptionMap
             Conversion options, including ``n_features``.
 
         Returns
@@ -154,8 +163,9 @@ class SklearnModelConverter:
             raise UnsupportedModelError(
                 "n_features is required for sklearn conversion."
             )
-        initial_types = options.get("initial_types")
-        if initial_types is None:
+        raw_initial_types = options.get("initial_types")
+        initial_types: list[tuple[str, SklearnInitialTypeLike]] | None
+        if raw_initial_types is None:
             try:
                 from skl2onnx.common.data_types import FloatTensorType
             except Exception as exc:
@@ -163,6 +173,10 @@ class SklearnModelConverter:
                     "skl2onnx is required for sklearn conversion."
                 ) from exc
             initial_types = [("input", FloatTensorType([None, n_features]))]
+        else:
+            initial_types = cast(
+                list[tuple[str, SklearnInitialTypeLike]], raw_initial_types
+            )
 
         from onnx_converter import convert_sklearn_to_onnx
 

@@ -12,6 +12,7 @@ from onnx_converter.application.use_cases import (
     convert_tensorflow_file,
     convert_torch_file,
 )
+from onnx_converter.types import OptionMap
 
 
 def convert_torch_file_to_onnx(
@@ -118,7 +119,7 @@ def convert_custom_file_to_onnx(
     model_type: str | None = None,
     plugin_name: str | None = None,
     plugin_modules: Iterable[str] | None = None,
-    options: Mapping[str, object] | None = None,
+    options: OptionMap | None = None,
 ) -> Path:
     """Convert model artifact via plugin-based adapter resolution.
 

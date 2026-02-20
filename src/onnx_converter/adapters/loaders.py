@@ -5,34 +5,37 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, cast
 
 from onnx_converter.errors import (
     DependencyError,
     UnsafeLoadError,
     UnsupportedModelError,
 )
+from onnx_converter.types import ModelArtifact, OptionValue
 
 
 class _TorchLoadModule(Protocol):
     """Protocol for torch modules exposing ``load`` used by this adapter."""
 
-    load: Callable[..., object]
+    load: Callable[..., ModelArtifact]
 
 
 def _torch_load_weights_only(
     torch_module: _TorchLoadModule, model_path: Path
-) -> object:
+) -> ModelArtifact:
     load_fn = torch_module.load
-    kwargs: dict[str, object] = {"map_location": "cpu"}
+    kwargs: dict[str, OptionValue] = {"map_location": "cpu"}
     if "weights_only" in inspect.signature(load_fn).parameters:
         kwargs["weights_only"] = True
     return load_fn(str(model_path), **kwargs)
 
 
-def _torch_load_unsafe(torch_module: _TorchLoadModule, model_path: Path) -> object:
+def _torch_load_unsafe(
+    torch_module: _TorchLoadModule, model_path: Path
+) -> ModelArtifact:
     load_fn = torch_module.load
-    kwargs: dict[str, object] = {"map_location": "cpu"}
+    kwargs: dict[str, OptionValue] = {"map_location": "cpu"}
     if "weights_only" in inspect.signature(load_fn).parameters:
         kwargs["weights_only"] = False
     return load_fn(str(model_path), **kwargs)
@@ -41,7 +44,7 @@ def _torch_load_unsafe(torch_module: _TorchLoadModule, model_path: Path) -> obje
 class TorchModelLoader:
     """Load TorchScript or torch checkpoints."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> ModelArtifact:
         """Load a TorchScript model or checkpoint artifact.
 
         Parameters
@@ -53,8 +56,8 @@ class TorchModelLoader:
 
         Returns
         -------
-        Any
-            Loaded PyTorch model object.
+        ModelArtifact
+            Loaded PyTorch model.
         """
         try:
             import torch
@@ -83,13 +86,13 @@ class TorchModelLoader:
                 "Model appears to be a checkpoint. "
                 "Load the architecture and export from code."
             )
-        return model
+        return cast(ModelArtifact, model)
 
 
 class TensorflowModelLoader:
     """Load TensorFlow SavedModel path or Keras model file."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> ModelArtifact:
         """Load a TensorFlow SavedModel directory or Keras model file.
 
         Parameters
@@ -101,7 +104,7 @@ class TensorflowModelLoader:
 
         Returns
         -------
-        Any
+        ModelArtifact
             Loaded TensorFlow model reference.
         """
         del allow_unsafe
@@ -113,14 +116,14 @@ class TensorflowModelLoader:
             ) from exc
 
         if model_path.is_dir():
-            return str(model_path)
-        return tf.keras.models.load_model(str(model_path))
+            return cast(ModelArtifact, str(model_path))
+        return cast(ModelArtifact, tf.keras.models.load_model(str(model_path)))
 
 
 class SklearnModelLoader:
     """Load sklearn-like serialized artifacts."""
 
-    def load(self, model_path: Path, allow_unsafe: bool = False) -> object:
+    def load(self, model_path: Path, allow_unsafe: bool = False) -> ModelArtifact:
         """Load a serialized scikit-learn artifact.
 
         Parameters
@@ -132,8 +135,8 @@ class SklearnModelLoader:
 
         Returns
         -------
-        Any
-            Loaded scikit-learn model object.
+        ModelArtifact
+            Loaded scikit-learn model.
         """
         suffix = model_path.suffix.lower()
 
@@ -150,7 +153,7 @@ class SklearnModelLoader:
                 raise DependencyError(
                     "skops is required to load .skops artifacts."
                 ) from exc
-            return skops_load(str(model_path))
+            return cast(ModelArtifact, skops_load(str(model_path)))
 
         if suffix in {".joblib", ".jl", ".pkl", ".pickle"}:
             try:
@@ -159,7 +162,7 @@ class SklearnModelLoader:
                 raise DependencyError(
                     "joblib is required for sklearn artifact loading."
                 ) from exc
-            return joblib.load(str(model_path))
+            return cast(ModelArtifact, joblib.load(str(model_path)))
 
         raise UnsupportedModelError(
             "Unsupported model file extension. Use .joblib, .skops, or .pkl/.pickle."

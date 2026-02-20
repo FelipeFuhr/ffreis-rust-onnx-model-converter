@@ -29,11 +29,12 @@ import traceback
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 import typer
 
 from onnx_converter.errors import ConversionError, PluginError
+from onnx_converter.types import MutableOptionMap, OptionValue
 
 app = typer.Typer(
     name="convert-to-onnx",
@@ -184,7 +185,7 @@ def _parse_metadata(metadata_items: list[str] | None) -> dict[str, str]:
     return parsed
 
 
-def _coerce_option_value(raw: str) -> object:
+def _coerce_option_value(raw: str) -> OptionValue:
     """Best-effort coercion for CLI key/value options."""
     lowered = raw.lower()
     if lowered in {"true", "false"}:
@@ -197,9 +198,9 @@ def _coerce_option_value(raw: str) -> object:
         return raw
 
 
-def _parse_model_options(option_items: list[str] | None) -> dict[str, object]:
+def _parse_model_options(option_items: list[str] | None) -> MutableOptionMap:
     """Parse repeatable KEY=VALUE options for custom plugin command."""
-    parsed: dict[str, object] = {}
+    parsed: MutableOptionMap = {}
     for item in option_items or []:
         if "=" not in item:
             raise typer.BadParameter(
@@ -361,30 +362,19 @@ def pytorch_cmd(
     try:
         from onnx_converter.api import convert_torch_file_to_onnx
 
-        kwargs: dict[str, Any] = {
-            "model_path": model_path,
-            "output_path": output_path,
-            "input_shape": tuple(input_shape),
-            "opset_version": opset_version,
-            "allow_unsafe": allow_unsafe,
-        }
-        if input_names:
-            kwargs["input_names"] = input_names
-        if output_names:
-            kwargs["output_names"] = output_names
-        if dynamic_batch:
-            kwargs["dynamic_batch"] = True
-        if optimize:
-            kwargs["optimize"] = True
-        if quantize_dynamic:
-            kwargs["quantize_dynamic"] = True
-        if metadata_payload:
-            kwargs["metadata"] = metadata_payload
-        if parity_input is not None:
-            kwargs["parity_input_path"] = parity_input
-
         out = convert_torch_file_to_onnx(
-            **kwargs,
+            model_path=model_path,
+            output_path=output_path,
+            input_shape=tuple(input_shape),
+            opset_version=opset_version,
+            allow_unsafe=allow_unsafe,
+            input_names=input_names,
+            output_names=output_names,
+            dynamic_batch=dynamic_batch,
+            optimize=optimize,
+            quantize_dynamic=quantize_dynamic,
+            metadata=metadata_payload or None,
+            parity_input_path=parity_input,
         )
         typer.echo(f"[green]✓ Saved:[/green] {out}")
     except ConversionError as exc:
@@ -467,23 +457,17 @@ def tensorflow_cmd(
     try:
         from onnx_converter.api import convert_tf_path_to_onnx
 
-        kwargs: dict[str, Any] = {
-            "model_path": model_path,
-            "output_path": output_path,
-            "opset_version": opset_version,
-        }
-        if optimize:
-            kwargs["optimize"] = True
-        if quantize_dynamic:
-            kwargs["quantize_dynamic"] = True
-        if metadata_payload:
-            kwargs["metadata"] = metadata_payload
-        if parity_input is not None:
-            kwargs["parity_input_path"] = parity_input
-            kwargs["parity_atol"] = parity_atol
-            kwargs["parity_rtol"] = parity_rtol
-
-        out = convert_tf_path_to_onnx(**kwargs)
+        out = convert_tf_path_to_onnx(
+            model_path=model_path,
+            output_path=output_path,
+            opset_version=opset_version,
+            optimize=optimize,
+            quantize_dynamic=quantize_dynamic,
+            metadata=metadata_payload or None,
+            parity_input_path=parity_input,
+            parity_atol=parity_atol,
+            parity_rtol=parity_rtol,
+        )
         _validate_if_requested(out, validate)
         typer.echo(f"[green]✓ Saved:[/green] {out}")
     except ConversionError as exc:
@@ -589,24 +573,18 @@ def sklearn_cmd(
     try:
         from onnx_converter.api import convert_sklearn_file_to_onnx
 
-        kwargs: dict[str, Any] = {
-            "model_path": model_path,
-            "output_path": output_path,
-            "n_features": n_features,
-            "allow_unsafe": allow_unsafe,
-        }
-        if optimize:
-            kwargs["optimize"] = True
-        if quantize_dynamic:
-            kwargs["quantize_dynamic"] = True
-        if metadata_payload:
-            kwargs["metadata"] = metadata_payload
-        if parity_input is not None:
-            kwargs["parity_input_path"] = parity_input
-            kwargs["parity_atol"] = parity_atol
-            kwargs["parity_rtol"] = parity_rtol
-
-        out = convert_sklearn_file_to_onnx(**kwargs)
+        out = convert_sklearn_file_to_onnx(
+            model_path=model_path,
+            output_path=output_path,
+            n_features=n_features,
+            allow_unsafe=allow_unsafe,
+            optimize=optimize,
+            quantize_dynamic=quantize_dynamic,
+            metadata=metadata_payload or None,
+            parity_input_path=parity_input,
+            parity_atol=parity_atol,
+            parity_rtol=parity_rtol,
+        )
         _validate_if_requested(out, validate)
         typer.echo(f"[green]✓ Saved:[/green] {out}")
     except ConversionError as exc:
@@ -676,7 +654,7 @@ def custom_cmd(
     option_payload["allow_unsafe"] = allow_unsafe
     option_payload["optimize"] = optimize
     option_payload["quantize_dynamic"] = quantize_dynamic
-    option_payload["metadata"] = metadata_payload
+    option_payload["metadata"] = cast(dict[str, OptionValue], metadata_payload)
     if parity_input is not None:
         option_payload["parity_input_path"] = parity_input
 

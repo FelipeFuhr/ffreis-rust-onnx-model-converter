@@ -2,22 +2,29 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import cast
+
+from onnx_converter.types import (
+    ModelArtifact,
+    OptionMap,
+    OptionValue,
+    SklearnInitialTypeLike,
+    TensorSpecLike,
+)
 
 __version__ = "0.1.0"
 
 
 def convert_pytorch_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
     input_shape: tuple[int, ...],
     input_names: list[str] | None = None,
     output_names: list[str] | None = None,
     dynamic_axes: dict[str, dict[int, str]] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a PyTorch model to ONNX.
 
@@ -37,7 +44,7 @@ def convert_pytorch_to_onnx(
         Dynamic axis mapping forwarded to the exporter.
     opset_version : int, default=14
         ONNX opset version to use.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional exporter options.
 
     Returns
@@ -60,11 +67,11 @@ def convert_pytorch_to_onnx(
 
 
 def convert_tensorflow_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
-    input_signature: object = None,
+    input_signature: Sequence[TensorSpecLike] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a TensorFlow/Keras model to ONNX.
 
@@ -78,7 +85,7 @@ def convert_tensorflow_to_onnx(
         TensorFlow input signature for conversion.
     opset_version : int, default=14
         ONNX opset version to use.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional converter options.
 
     Returns
@@ -91,18 +98,18 @@ def convert_tensorflow_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        input_signature=cast(list[object] | None, input_signature),
+        input_signature=input_signature,
         opset_version=opset_version,
         **kwargs,
     )
 
 
 def convert_sklearn_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
-    initial_types: object = None,
+    initial_types: list[tuple[str, SklearnInitialTypeLike]] | None = None,
     target_opset: int | None = None,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a scikit-learn model or pipeline to ONNX.
 
@@ -116,7 +123,7 @@ def convert_sklearn_to_onnx(
         Input type declarations passed to ``skl2onnx``.
     target_opset : int, optional
         ONNX opset version override.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional converter options.
 
     Returns
@@ -129,7 +136,7 @@ def convert_sklearn_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        initial_types=cast(list[tuple[str, object]] | None, initial_types),
+        initial_types=initial_types,
         target_opset=target_opset,
         **kwargs,
     )
@@ -142,7 +149,7 @@ def convert_custom_file_to_onnx(
     model_type: str | None = None,
     plugin_name: str | None = None,
     plugin_modules: Iterable[str] | None = None,
-    options: Mapping[str, object] | None = None,
+    options: OptionMap | None = None,
 ) -> Path:
     """Convert model artifact through plugin-based adapter resolution.
 

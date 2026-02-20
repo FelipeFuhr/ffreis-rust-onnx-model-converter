@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Protocol, cast
 
 import pytest
 
@@ -14,17 +14,22 @@ from onnx_converter.errors import ConversionError
 class _AbortRecorder:
     """Capture abort arguments from service context."""
 
-    code: object | None = None
+    code: str | None = None
     details: str | None = None
 
     def abort(self, code: object, details: str) -> None:
         """Raise runtime error on abort."""
-        self.code = code
+        self.code = str(getattr(code, "name", code))
         self.details = details
         raise RuntimeError(f"aborted: {code.name}: {details}")
 
 
-def _deps() -> tuple[Any, Any, Any]:
+class _GrpcModuleLike(Protocol):
+    class StatusCode:
+        INVALID_ARGUMENT: object
+
+
+def _deps() -> tuple[_GrpcModuleLike, object, object]:
     grpc = pytest.importorskip("grpc")
     converter_pb2 = pytest.importorskip("converter_grpc.converter_pb2")
     from onnx_converter.converter import grpc_server as module
@@ -76,7 +81,7 @@ def test_convert_stream_returns_metadata_and_payload_chunks(
             converter_pb2.ConvertRequestChunk(data=b"chunk-b"),
         ]
     )
-    replies = list(service.Convert(request_stream, cast(Any, context)))
+    replies = list(service.Convert(request_stream, context))
     assert replies
     first = replies[0]
     assert first.result.input_sha256 == "insha"
@@ -101,8 +106,8 @@ def test_convert_stream_rejects_missing_metadata() -> None:
     context = _AbortRecorder()
     request_stream = iter([converter_pb2.ConvertRequestChunk(data=b"x")])
     with pytest.raises(RuntimeError, match="missing conversion metadata"):
-        list(service.Convert(request_stream, cast(Any, context)))
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+        list(service.Convert(request_stream, context))
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 def test_convert_stream_rejects_duplicate_metadata() -> None:
@@ -121,8 +126,8 @@ def test_convert_stream_rejects_duplicate_metadata() -> None:
         ]
     )
     with pytest.raises(RuntimeError, match="metadata provided more than once"):
-        list(service.Convert(request_stream, cast(Any, context)))
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+        list(service.Convert(request_stream, context))
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 def test_convert_stream_rejects_missing_payload() -> None:
@@ -138,8 +143,8 @@ def test_convert_stream_rejects_missing_payload() -> None:
         ]
     )
     with pytest.raises(RuntimeError, match="missing artifact payload"):
-        list(service.Convert(request_stream, cast(Any, context)))
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+        list(service.Convert(request_stream, context))
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 def test_convert_stream_maps_value_error_to_invalid_argument(
@@ -167,8 +172,8 @@ def test_convert_stream_maps_value_error_to_invalid_argument(
         ]
     )
     with pytest.raises(RuntimeError, match="invalid request"):
-        list(service.Convert(request_stream, cast(Any, context)))
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+        list(service.Convert(request_stream, context))
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 def test_convert_stream_maps_conversion_error_to_invalid_argument(
@@ -196,8 +201,8 @@ def test_convert_stream_maps_conversion_error_to_invalid_argument(
         ]
     )
     with pytest.raises(RuntimeError, match="conversion exploded"):
-        list(service.Convert(request_stream, cast(Any, context)))
-    assert context.code == grpc.StatusCode.INVALID_ARGUMENT
+        list(service.Convert(request_stream, context))
+    assert context.code == grpc.StatusCode.INVALID_ARGUMENT.name
 
 
 def test_iter_chunks_splits_payload() -> None:

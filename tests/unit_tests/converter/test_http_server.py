@@ -2,14 +2,28 @@
 
 from __future__ import annotations
 
+import argparse
 import types
+from typing import TYPE_CHECKING, Protocol, cast
 
 import pytest
 
+from onnx_converter.converter.core import ConversionOutcome, ConversionRequest
 from onnx_converter.errors import ConversionError
 
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
 
-def _client() -> object:
+
+class _RequestWithFramework(Protocol):
+    framework: str
+
+
+class _UvicornLike(Protocol):
+    def run(self, app_ref: str, *, host: str, port: int, reload: bool) -> None: ...
+
+
+def _client() -> TestClient:
     pytest.importorskip("fastapi")
     pytest.importorskip("httpx")
 
@@ -24,15 +38,14 @@ def test_convert_upload_returns_binary_and_integrity_headers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Return converted binary plus input/output digest metadata."""
-    seen: dict[str, object] = {}
+    seen: dict[str, _RequestWithFramework] = {}
 
     def fake_convert_artifact_bytes(
         data: bytes,
-        request: object,
-    ) -> tuple[str, object]:
+        request: ConversionRequest,
+    ) -> tuple[str, ConversionOutcome]:
         assert data == b"artifact-bytes"
-        seen["request"] = request
-        from onnx_converter.converter.core import ConversionOutcome
+        seen["request"] = cast(_RequestWithFramework, request)
 
         return (
             "insha",
@@ -77,15 +90,14 @@ def test_convert_upload_normalizes_framework_input(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Normalize framework similarly to gRPC transport."""
-    seen: dict[str, object] = {}
+    seen: dict[str, str] = {}
 
     def fake_convert_artifact_bytes(
         data: bytes,
-        request: object,
-    ) -> tuple[str, object]:
+        request: ConversionRequest,
+    ) -> tuple[str, ConversionOutcome]:
         _ = data
         seen["framework"] = request.framework
-        from onnx_converter.converter.core import ConversionOutcome
 
         return (
             "insha",
@@ -131,8 +143,8 @@ def test_convert_upload_maps_domain_validation_errors_to_400(
 
     def fake_convert_artifact_bytes(
         data: bytes,
-        request: object,
-    ) -> tuple[str, object]:
+        request: ConversionRequest,
+    ) -> tuple[str, ConversionOutcome]:
         _ = (data, request)
         raise ConversionError("bad artifact")
 
@@ -156,8 +168,8 @@ def test_convert_upload_maps_unexpected_errors_to_500(
 
     def fake_convert_artifact_bytes(
         data: bytes,
-        request: object,
-    ) -> tuple[str, object]:
+        request: ConversionRequest,
+    ) -> tuple[str, ConversionOutcome]:
         _ = (data, request)
         raise RuntimeError("unexpected failure")
 
@@ -215,14 +227,14 @@ def test_main_runs_uvicorn(
 ) -> None:
     """Parse CLI args and pass them to uvicorn."""
     pytest.importorskip("fastapi")
-    calls: dict[str, object] = {}
+    calls: dict[str, str | int | bool] = {}
 
     import onnx_converter.converter.http_server as module
 
     monkeypatch.setattr(
-        module.argparse.ArgumentParser,
+        argparse.ArgumentParser,
         "parse_args",  # noqa: ARG005
-        lambda self: module.argparse.Namespace(host="127.0.0.1", port=9999),
+        lambda self: argparse.Namespace(host="127.0.0.1", port=9999),
     )
 
     def fake_run(app_ref: str, *, host: str, port: int, reload: bool) -> None:
@@ -234,7 +246,7 @@ def test_main_runs_uvicorn(
     monkeypatch.setattr(
         module,
         "uvicorn",
-        types.SimpleNamespace(run=fake_run),
+        cast(_UvicornLike, types.SimpleNamespace(run=fake_run)),
     )
     module.main()
     assert calls == {

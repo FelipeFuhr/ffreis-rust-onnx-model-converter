@@ -11,24 +11,25 @@ from skl2onnx.common.data_types import FloatTensorType
 
 from onnx_converter.errors import ConversionError
 from onnx_converter.schemas import SklearnConversionConfig
+from onnx_converter.types import ModelArtifact, OptionValue, SklearnInitialTypeLike
 
 
 def convert_sklearn_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
-    initial_types: list[tuple[str, object]] | None = None,
+    initial_types: list[tuple[str, SklearnInitialTypeLike]] | None = None,
     target_opset: int | None = None,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a scikit-learn model or pipeline to ONNX format.
 
     Parameters
     ----------
-    model : object
+    model : ModelArtifact
         Scikit-learn model or pipeline instance to convert.
     output_path : str
         Path where the ONNX model will be written.
-    initial_types : list[tuple[str, object]], optional
+    initial_types : list[tuple[str, SklearnInitialTypeLike]], optional
         Input type declarations expected by ``skl2onnx``.
         When omitted, input types are inferred from ``model.n_features_in_``.
     target_opset : int, optional

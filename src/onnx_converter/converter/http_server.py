@@ -7,28 +7,78 @@ import importlib
 import logging
 import os
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 from pydantic import BaseModel, ConfigDict
 
-from onnx_converter.converter.core import ConversionRequest, convert_artifact_bytes
+from onnx_converter.converter.core import (
+    ConversionRequest,
+    Framework,
+    convert_artifact_bytes,
+)
 from onnx_converter.errors import ConversionError
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from fastapi import FastAPI
+    from fastapi import FastAPI, UploadFile
     from fastapi.responses import Response
+else:
 
-_fastapi_module: Any = None
-_fastapi_responses_module: Any = None
+    class UploadFile:
+        """Fallback UploadFile type used when FastAPI is not installed."""
+
+        filename: str | None = None
+
+        async def read(self) -> bytes:
+            """Read uploaded content bytes."""
+            return b""
+
+
+class _FastapiStatusLike(Protocol):
+    HTTP_400_BAD_REQUEST: int
+    HTTP_500_INTERNAL_SERVER_ERROR: int
+
+
+class _FastapiModuleLike(Protocol):
+    """Subset of fastapi module API used by HTTP transport."""
+
+    status: _FastapiStatusLike
+
+    class HTTPException(Exception):
+        def __init__(self, *, status_code: int, detail: str) -> None: ...
+
+    def File(self, default: object) -> object: ...
+
+    def Form(self, default: object = ..., **kwargs: object) -> object: ...
+
+    def FastAPI(self, **kwargs: object) -> object: ...
+
+
+class _ResponsesModuleLike(Protocol):
+    """Subset of fastapi.responses module API used by this module."""
+
+    def Response(
+        self,
+        *,
+        content: bytes,
+        media_type: str,
+        headers: dict[str, str],
+    ) -> object: ...
+
+
+_fastapi_module: ModuleType | None = None
+_fastapi_responses_module: ModuleType | None = None
 try:
     _fastapi_module = importlib.import_module("fastapi")
     _fastapi_responses_module = importlib.import_module("fastapi.responses")
 except ModuleNotFoundError:  # pragma: no cover
     pass
 
-fastapi = _fastapi_module
+if _fastapi_module is not None and not TYPE_CHECKING:
+    UploadFile = cast(type[UploadFile], _fastapi_module.UploadFile)
+
+fastapi = cast(_FastapiModuleLike | None, _fastapi_module)
 responses = _fastapi_responses_module
 
 try:
@@ -81,16 +131,38 @@ def _parse_input_shape(value: str | None) -> tuple[int, ...] | None:
     return dims
 
 
+def _parse_framework(value: str) -> Framework:
+    """Normalize and validate framework for transport payloads."""
+    normalized = value.strip().lower()
+    if normalized not in {"pytorch", "tensorflow", "sklearn"}:
+        raise ValueError("framework must be one of: pytorch, tensorflow, sklearn")
+    return cast(Framework, normalized)
+
+
 def create_app() -> FastAPI:
     """Create converter daemon HTTP application."""
     _require_http_runtime()
-    app = fastapi.FastAPI(
-        title="ONNX Converter Daemon",
-        version="0.1.0",
-        description=(
-            "Upload model artifacts and download converted ONNX with integrity checks."
+    if fastapi is None:
+        raise RuntimeError("fastapi module is unavailable")
+    fastapi_module = fastapi
+    responses_module = cast(_ResponsesModuleLike, responses)
+    app = cast(
+        "FastAPI",
+        fastapi_module.FastAPI(
+            title="ONNX Converter Daemon",
+            version="0.1.0",
+            description=(
+                "Upload model artifacts and download converted ONNX with integrity "
+                "checks."
+            ),
         ),
     )
+    artifact_param = cast(UploadFile, fastapi_module.File(...))
+    framework_param = cast(str, fastapi_module.Form(...))
+    expected_sha256_param = cast(str | None, fastapi_module.Form(default=None))
+    input_shape_param = cast(str | None, fastapi_module.Form(default=None))
+    n_features_param = cast(int | None, fastapi_module.Form(default=None))
+    opset_version_param = cast(int, fastapi_module.Form(default=14))
 
     @app.get("/healthz", response_model=HealthResponse)
     async def healthz() -> HealthResponse:
@@ -102,26 +174,25 @@ def create_app() -> FastAPI:
 
     @app.post("/v1/convert/upload")
     async def convert_upload(
-        artifact: object = fastapi.File(...),
-        framework: str = fastapi.Form(...),
-        expected_sha256: str | None = fastapi.Form(default=None),
-        input_shape: str | None = fastapi.Form(default=None),
-        n_features: int | None = fastapi.Form(default=None),
-        opset_version: int = fastapi.Form(default=14),
-    ) -> object:
+        artifact: UploadFile = artifact_param,
+        framework: str = framework_param,
+        expected_sha256: str | None = expected_sha256_param,
+        input_shape: str | None = input_shape_param,
+        n_features: int | None = n_features_param,
+        opset_version: int = opset_version_param,
+    ) -> Response:
         """Convert uploaded artifact and return ONNX bytes."""
-        uploaded = cast(Any, artifact)
-        artifact_name = uploaded.filename or "artifact.bin"
-        payload = await uploaded.read()
+        artifact_name = artifact.filename or "artifact.bin"
+        payload = await artifact.read()
         if not payload:
-            raise fastapi.HTTPException(
-                status_code=fastapi.status.HTTP_400_BAD_REQUEST,
+            raise fastapi_module.HTTPException(
+                status_code=fastapi_module.status.HTTP_400_BAD_REQUEST,
                 detail="uploaded artifact is empty",
             )
         try:
             normalized_framework = framework.strip().lower()
             request = ConversionRequest(
-                framework=normalized_framework,  # type: ignore[arg-type]
+                framework=_parse_framework(normalized_framework),
                 filename=artifact_name,
                 expected_sha256=expected_sha256,
                 input_shape=_parse_input_shape(input_shape),
@@ -132,14 +203,14 @@ def create_app() -> FastAPI:
             )
             input_sha, outcome = convert_artifact_bytes(payload, request)
         except (ValueError, ConversionError) as exc:
-            raise fastapi.HTTPException(
-                status_code=fastapi.status.HTTP_400_BAD_REQUEST,
+            raise fastapi_module.HTTPException(
+                status_code=fastapi_module.status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             ) from exc
         except Exception as exc:  # pragma: no cover
             logger.exception("unexpected error during HTTP conversion upload")
-            raise fastapi.HTTPException(
-                status_code=fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR,
+            raise fastapi_module.HTTPException(
+                status_code=fastapi_module.status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="internal server error",
             ) from exc
 
@@ -151,20 +222,23 @@ def create_app() -> FastAPI:
         }
         return cast(
             "Response",
-            responses.Response(
+            responses_module.Response(
                 content=outcome.output_bytes,
                 media_type="application/octet-stream",
                 headers=headers,
             ),
         )
 
-    return cast("FastAPI", app)
+    return app
 
+
+if TYPE_CHECKING:
+    app: FastAPI | None
 
 if _fastapi_module is not None:
     app = create_app()
 else:  # pragma: no cover
-    app = cast(Any, None)
+    app = None
 
 
 def main() -> None:

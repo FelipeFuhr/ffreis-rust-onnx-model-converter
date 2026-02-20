@@ -122,6 +122,10 @@ examples-autosklearn: ## Build and run autosklearn example containers
 test-grpc-parity: ## Run gRPC/API parity tests
 	$(VENV_DIR)/bin/pytest -q tests/integration_tests/test_grpc_parity.py
 
+.PHONY: test-grpc-parity-property
+test-grpc-parity-property: ## Run gRPC/API parity property tests (Hypothesis)
+	$(VENV_DIR)/bin/pytest -q tests/integration_tests/test_grpc_parity.py -m property
+
 .PHONY: openapi-check
 openapi-check: ## Validate OpenAPI contract and verify runtime drift
 	env -u VIRTUAL_ENV uv run --project . --extra server --with openapi-spec-validator --with pyyaml python scripts/check_openapi.py

@@ -17,6 +17,7 @@ from onnx_converter.application.ports import (
     ParityChecker,
 )
 from onnx_converter.application.results import ConversionResult
+from onnx_converter.types import OptionMap
 
 
 def build_conversion_options(
@@ -134,7 +135,7 @@ def convert_custom_file(
     model_type: str | None,
     plugin_name: str | None,
     plugin_modules: Iterable[str] | None,
-    options: Mapping[str, object],
+    options: OptionMap,
 ) -> ConversionResult:
     """Convert custom model artifact via lazy use-case import."""
     from onnx_converter.application.use_cases import convert_custom_file as _impl

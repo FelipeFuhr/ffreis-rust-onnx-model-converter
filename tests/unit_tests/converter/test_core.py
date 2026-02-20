@@ -59,11 +59,22 @@ def test_safe_input_filename(value: str, expected: str) -> None:
 
 def test_run_conversion_dispatches_to_torch(monkeypatch: pytest.MonkeyPatch) -> None:
     """Dispatch PyTorch requests with all conversion options."""
-    seen: dict[str, object] = {}
+    seen: dict[str, Path | tuple[int, ...] | int | bool] = {}
 
-    def fake_torch(**kwargs: object) -> Path:
-        seen.update(kwargs)
-        return kwargs["output_path"]  # type: ignore[return-value]
+    def fake_torch(
+        *,
+        model_path: Path,
+        output_path: Path,
+        input_shape: tuple[int, ...],
+        opset_version: int,
+        allow_unsafe: bool,
+    ) -> Path:
+        seen["model_path"] = model_path
+        seen["output_path"] = output_path
+        seen["input_shape"] = input_shape
+        seen["opset_version"] = opset_version
+        seen["allow_unsafe"] = allow_unsafe
+        return output_path
 
     monkeypatch.setattr(core, "convert_torch_file_to_onnx", fake_torch)
     output = core.run_conversion(
@@ -87,11 +98,18 @@ def test_run_conversion_dispatches_to_tensorflow(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Dispatch TensorFlow requests with opset option."""
-    seen: dict[str, object] = {}
+    seen: dict[str, Path | int] = {}
 
-    def fake_tf(**kwargs: object) -> Path:
-        seen.update(kwargs)
-        return kwargs["output_path"]  # type: ignore[return-value]
+    def fake_tf(
+        *,
+        model_path: Path,
+        output_path: Path,
+        opset_version: int,
+    ) -> Path:
+        seen["model_path"] = model_path
+        seen["output_path"] = output_path
+        seen["opset_version"] = opset_version
+        return output_path
 
     monkeypatch.setattr(core, "convert_tf_path_to_onnx", fake_tf)
     output = core.run_conversion(
@@ -109,11 +127,20 @@ def test_run_conversion_dispatches_to_tensorflow(
 
 def test_run_conversion_dispatches_to_sklearn(monkeypatch: pytest.MonkeyPatch) -> None:
     """Dispatch scikit-learn requests with safety flag."""
-    seen: dict[str, object] = {}
+    seen: dict[str, Path | int | bool] = {}
 
-    def fake_sklearn(**kwargs: object) -> Path:
-        seen.update(kwargs)
-        return kwargs["output_path"]  # type: ignore[return-value]
+    def fake_sklearn(
+        *,
+        model_path: Path,
+        output_path: Path,
+        n_features: int,
+        allow_unsafe: bool,
+    ) -> Path:
+        seen["model_path"] = model_path
+        seen["output_path"] = output_path
+        seen["n_features"] = n_features
+        seen["allow_unsafe"] = allow_unsafe
+        return output_path
 
     monkeypatch.setattr(core, "convert_sklearn_file_to_onnx", fake_sklearn)
     output = core.run_conversion(
@@ -151,10 +178,10 @@ def test_run_conversion_validates_framework_options() -> None:
         )
 
     with pytest.raises(ValueError, match="unsupported framework"):
+        invalid_request = ConversionRequest(framework="tensorflow", filename="m.bin")
+        object.__setattr__(invalid_request, "framework", "xgboost")
         core.run_conversion(
-            input_path=dummy_path,
-            request=ConversionRequest(framework="xgboost", filename="m.bin"),  # type: ignore[arg-type]
-            output_path=dummy_output,
+            input_path=dummy_path, request=invalid_request, output_path=dummy_output
         )
 
 

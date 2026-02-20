@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 from pydantic import ValidationError
 
@@ -15,6 +13,7 @@ from onnx_converter.application.options import ParityOptions, PostprocessOptions
 from onnx_converter.errors import PluginError
 from onnx_converter.infrastructure.postprocessing import OnnxPostProcessorImpl
 from onnx_converter.schemas import SklearnPluginOptions
+from onnx_converter.types import MutableOptionMap, OptionMap
 
 
 class SklearnFilePlugin:
@@ -60,7 +59,7 @@ class SklearnFilePlugin:
         self,
         model_path: Path,
         output_path: Path,
-        options: Mapping[str, Any],
+        options: OptionMap,
     ) -> Path:
         """Convert sklearn artifact to ONNX using validated options.
 
@@ -70,7 +69,7 @@ class SklearnFilePlugin:
             Input model artifact path.
         output_path : Path
             ONNX output path.
-        options : Mapping[str, Any]
+        options : OptionMap
             User-provided plugin options.
 
         Returns
@@ -104,7 +103,7 @@ class SklearnFilePlugin:
             allow_unsafe=parsed.allow_unsafe,
         )
 
-        converter_options: dict[str, Any] = {"n_features": parsed.n_features}
+        converter_options: MutableOptionMap = {"n_features": parsed.n_features}
         if parsed.opset_version is not None:
             converter_options["target_opset"] = parsed.opset_version
 

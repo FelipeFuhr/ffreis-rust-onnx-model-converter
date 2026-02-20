@@ -75,6 +75,8 @@ pip install -e ".[grpc]"        # gRPC transport
 pip install -e ".[all]"         # secure default bundle (excludes tf_legacy)
 ```
 
+gRPC server reflection is intentionally not enabled in runtime paths.
+
 ## CLI usage
 
 ```bash

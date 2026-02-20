@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
-PluginOptions = Mapping[str, Any]
+from onnx_converter.types import OptionMap
+
+PluginOptions = OptionMap
 
 
 @runtime_checkable
@@ -49,7 +50,7 @@ class ConverterPlugin(Protocol):
             Path to the source model artifact.
         output_path : Path
             Path where ONNX model should be written.
-        options : Mapping[str, Any]
+        options : OptionMap
             Raw plugin options.
 
         Returns
