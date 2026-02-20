@@ -1,0 +1,9 @@
+ARG EXAMPLES_BASE_IMAGE=ffreis/onnx-converter-examples-base
+FROM ${EXAMPLES_BASE_IMAGE}
+
+RUN uv pip install --python /opt/examples-venv/bin/python \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      ".[runtime,torch]"
+
+USER appuser:appgroup
+ENTRYPOINT ["python3", "examples/pytorch_example.py"]

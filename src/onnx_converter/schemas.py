@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from onnx_converter.types import OptionValue
+
 
 class TorchFileConversionConfig(BaseModel):
     """Validated input for file-based PyTorch conversion."""
@@ -107,7 +109,7 @@ class SklearnPluginOptions(BaseModel):
 
     @field_validator("metadata", mode="before")
     @classmethod
-    def _normalize_metadata(cls, value: object) -> dict[str, str] | None:
+    def _normalize_metadata(cls, value: OptionValue) -> dict[str, str] | None:
         if value is None:
             return None
         if not isinstance(value, dict):

@@ -30,10 +30,11 @@ jobs:
       - name: Install deps for coverage
         run: |
           set -euo pipefail
-          uv sync --extra dev --extra cli --extra sklearn --extra runtime
+          uv sync --extra dev --extra cli --extra runtime --extra server --extra grpc
       - name: Generate coverage report for Sonar
         run: |
           set -euo pipefail
+          ./scripts/generate_grpc_stubs.sh
           uv run pytest tests/unit_tests \
             --cov=onnx_converter \
             --cov-report=xml:coverage.xml \

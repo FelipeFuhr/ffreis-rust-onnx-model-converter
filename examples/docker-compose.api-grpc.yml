@@ -1,0 +1,51 @@
+services:
+  converter-api:
+    build:
+      context: ..
+      dockerfile: container/Dockerfile.services
+    image: ${IMAGE_ROOT:-ffreis}-onnx-converter:${IMAGE_TAG:-api-grpc-smoke}
+    command:
+      - python
+      - -m
+      - onnx_converter.converter.http_server
+    environment:
+      CONVERTER_HTTP_HOST: 0.0.0.0
+      CONVERTER_HTTP_PORT: "8090"
+    ports:
+      - "18090:8090"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import http.client; c=http.client.HTTPConnection('127.0.0.1', 8090, timeout=3); c.request('GET','/healthz'); r=c.getresponse(); c.close(); raise SystemExit(0 if r.status == 200 else 1)"
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  converter-grpc:
+    image: ${IMAGE_ROOT:-ffreis}-onnx-converter:${IMAGE_TAG:-api-grpc-smoke}
+    command:
+      - python
+      - -m
+      - onnx_converter.converter.grpc_server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8091"
+    ports:
+      - "18091:8091"
+
+  smoke:
+    image: ${IMAGE_ROOT:-ffreis}-onnx-converter:${IMAGE_TAG:-api-grpc-smoke}
+    depends_on:
+      converter-api:
+        condition: service_healthy
+      converter-grpc:
+        condition: service_started
+    command:
+      - python
+      - examples/smoke_api_grpc.py
+    environment:
+      CONVERTER_API_BASE: http://converter-api:8090
+      CONVERTER_GRPC_TARGET: converter-grpc:8091

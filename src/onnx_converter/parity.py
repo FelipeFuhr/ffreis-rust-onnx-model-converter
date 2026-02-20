@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -11,22 +12,22 @@ import numpy.typing as npt
 from onnx_converter.errors import ParityError
 
 FloatArray = npt.NDArray[np.float32]
-AnyArray = npt.NDArray[Any]
+LabelArray = npt.NDArray[np.int64]
 
 
 class _PredictorProtocol(Protocol):
     """Protocol for models exposing ``predict``."""
 
-    def predict(self, features: AnyArray) -> object:
+    def predict(self, features: FloatArray) -> LabelArray:
         """Predict labels for features."""
 
 
 class _ProbaPredictorProtocol(Protocol):
     """Protocol for models exposing ``predict_proba`` and ``classes_``."""
 
-    classes_: object
+    classes_: npt.NDArray[np.int64]
 
-    def predict_proba(self, features: AnyArray) -> object:
+    def predict_proba(self, features: FloatArray) -> FloatArray:
         """Predict class probabilities for features."""
 
 
@@ -92,7 +93,9 @@ def check_tensor_parity(
         )
 
 
-def _probabilities_to_matrix(raw_probs: object, classes: AnyArray) -> FloatArray:
+def _probabilities_to_matrix(
+    raw_probs: FloatArray | list[Mapping[int, float]], classes: npt.NDArray[np.int64]
+) -> FloatArray:
     """Normalize various ONNX classifier probability encodings."""
     if isinstance(raw_probs, list) and raw_probs and isinstance(raw_probs[0], dict):
         return np.array(
@@ -102,7 +105,7 @@ def _probabilities_to_matrix(raw_probs: object, classes: AnyArray) -> FloatArray
 
 
 def check_sklearn_parity(
-    model: object,
+    model: _PredictorProtocol,
     onnx_path: Path,
     parity_input: FloatArray,
     atol: float,
@@ -116,7 +119,7 @@ def check_sklearn_parity(
             "Sklearn parity check requires onnxruntime to be installed."
         ) from exc
 
-    predictor = cast(_PredictorProtocol, model)
+    predictor = model
     sklearn_pred = np.asarray(predictor.predict(parity_input))
     proba_predictor = cast(_ProbaPredictorProtocol, model)
     sklearn_proba = (

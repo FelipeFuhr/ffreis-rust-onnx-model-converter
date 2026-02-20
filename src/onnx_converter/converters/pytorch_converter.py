@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from onnx_converter.errors import ConversionError
 from onnx_converter.schemas import PytorchConversionConfig
+from onnx_converter.types import OptionValue
 
 
 def convert_pytorch_to_onnx(
@@ -21,7 +22,7 @@ def convert_pytorch_to_onnx(
     output_names: list[str] | None = None,
     dynamic_axes: dict[str, dict[int, str]] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a PyTorch model to ONNX format.
 

@@ -37,6 +37,9 @@ jobs:
       - name: Ensure test/runtime deps
         run: uv pip install pytest onnxruntime
 
+      - name: OpenAPI contract check
+        run: make openapi-check
+
       - name: Ruff lint
         run: uv run ruff check .
 

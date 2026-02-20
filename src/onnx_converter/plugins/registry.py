@@ -92,7 +92,7 @@ class PluginRegistry:
             Optional model family hint.
         plugin_name : str | None
             Explicit plugin name.
-        options : Mapping[str, Any]
+        options : PluginOptions
             Raw plugin options.
 
         Returns

@@ -8,7 +8,7 @@ ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /app
 
-COPY --chown=appuser:appgroup pyproject.toml README.md convert_to_onnx.py /app/
+COPY --chown=appuser:appgroup pyproject.toml README.md /app/
 COPY --chown=appuser:appgroup src /app/src
 
 USER root

@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package converter.grpc;
+
+service ConverterService {
+  rpc Convert(stream ConvertRequestChunk) returns (stream ConvertReplyChunk);
+}
+
+message ConvertMetadata {
+  string framework = 1;
+  string filename = 2;
+  string expected_sha256 = 3;
+  repeated int64 input_shape = 4;
+  int64 n_features = 5;
+  int32 opset_version = 6;
+  reserved 7;
+  reserved "allow_unsafe";
+}
+
+message ConvertRequestChunk {
+  oneof payload {
+    ConvertMetadata metadata = 1;
+    bytes data = 2;
+  }
+}
+
+message ConvertResult {
+  string input_sha256 = 1;
+  string output_sha256 = 2;
+  string output_filename = 3;
+  int64 output_size_bytes = 4;
+}
+
+message ConvertReplyChunk {
+  oneof payload {
+    ConvertResult result = 1;
+    bytes data = 2;
+  }
+}

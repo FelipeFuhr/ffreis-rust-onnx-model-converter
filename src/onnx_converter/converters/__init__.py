@@ -2,26 +2,33 @@
 
 from __future__ import annotations
 
-from typing import cast
+from collections.abc import Sequence
+
+from onnx_converter.types import (
+    ModelArtifact,
+    OptionValue,
+    SklearnInitialTypeLike,
+    TensorSpecLike,
+)
 
 __version__ = "0.1.0"
 
 
 def convert_pytorch_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
     input_shape: tuple[int, ...],
     input_names: list[str] | None = None,
     output_names: list[str] | None = None,
     dynamic_axes: dict[str, dict[int, str]] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a PyTorch model to ONNX via lazy backend import.
 
     Parameters
     ----------
-    model : Any
+    model : ModelArtifact
         PyTorch model object.
     output_path : str
         Destination ONNX path.
@@ -35,7 +42,7 @@ def convert_pytorch_to_onnx(
         Dynamic axes mapping forwarded to the exporter.
     opset_version : int, default=14
         Target ONNX opset.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional exporter-specific options.
 
     Returns
@@ -58,25 +65,25 @@ def convert_pytorch_to_onnx(
 
 
 def convert_tensorflow_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
-    input_signature: object = None,
+    input_signature: Sequence[TensorSpecLike] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a TensorFlow/Keras model to ONNX via lazy backend import.
 
     Parameters
     ----------
-    model : Any
+    model : ModelArtifact
         TensorFlow/Keras model object or compatible reference.
     output_path : str
         Destination ONNX path.
-    input_signature : object, default=None
+    input_signature : Sequence[TensorSpecLike] | None, default=None
         Optional TensorFlow input signature.
     opset_version : int, default=14
         Target ONNX opset.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional converter-specific options.
 
     Returns
@@ -89,32 +96,32 @@ def convert_tensorflow_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        input_signature=cast(list[object] | None, input_signature),
+        input_signature=input_signature,
         opset_version=opset_version,
         **kwargs,
     )
 
 
 def convert_sklearn_to_onnx(
-    model: object,
+    model: ModelArtifact,
     output_path: str,
-    initial_types: object = None,
+    initial_types: list[tuple[str, SklearnInitialTypeLike]] | None = None,
     target_opset: int | None = None,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a scikit-learn model to ONNX via lazy backend import.
 
     Parameters
     ----------
-    model : Any
+    model : ModelArtifact
         Scikit-learn estimator or pipeline.
     output_path : str
         Destination ONNX path.
-    initial_types : object, default=None
+    initial_types : list[tuple[str, SklearnInitialTypeLike]] | None, default=None
         Optional type hints for ``skl2onnx`` conversion.
     target_opset : int | None, default=None
         Optional ONNX opset override.
-    **kwargs : Any
+    **kwargs : OptionValue
         Additional converter-specific options.
 
     Returns
@@ -127,7 +134,7 @@ def convert_sklearn_to_onnx(
     return _impl(
         model=model,
         output_path=output_path,
-        initial_types=cast(list[tuple[str, object]] | None, initial_types),
+        initial_types=initial_types,
         target_opset=target_opset,
         **kwargs,
     )

@@ -62,3 +62,13 @@ coverage.xml
 coverage-*.xml
 htmlcov/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.tox/
+.nox/
+**/__pycache__/
+
+# Generated gRPC stubs (generated on demand)
+src/converter_grpc/*_pb2.py
+src/converter_grpc/*_pb2_grpc.py

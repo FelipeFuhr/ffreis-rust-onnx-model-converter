@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from pathlib import Path
+from typing import cast
 
 from pydantic import ValidationError
 
@@ -42,6 +43,7 @@ from onnx_converter.schemas import (
     TensorflowFileConversionConfig,
     TorchFileConversionConfig,
 )
+from onnx_converter.types import MutableOptionMap, OptionMap, OptionValue
 
 
 def convert_torch_file(
@@ -84,16 +86,17 @@ def convert_torch_file(
         if dynamic_batch
         else None
     )
+    converter_options: MutableOptionMap = {
+        "input_shape": config.input_shape,
+        "input_names": cast(list[OptionValue], input_names or []),
+        "output_names": cast(list[OptionValue], output_names or []),
+        "dynamic_axes": cast(dict[str, OptionValue], dynamic_axes or {}),
+        "opset_version": config.opset_version,
+    }
     out_path = converter.convert(
         model,
         config.output_path,
-        options={
-            "input_shape": config.input_shape,
-            "input_names": input_names,
-            "output_names": output_names,
-            "dynamic_axes": dynamic_axes,
-            "opset_version": config.opset_version,
-        },
+        options=converter_options,
     )
 
     parity_checker.check(model, out_path, options.parity)
@@ -223,10 +226,10 @@ def convert_custom_file(
     model_type: str | None,
     plugin_name: str | None,
     plugin_modules: Iterable[str] | None,
-    options: Mapping[str, object],
+    options: OptionMap,
 ) -> ConversionResult:
     """Use-case: resolve and run conversion plugin."""
-    option_map = dict(options)
+    option_map: MutableOptionMap = dict(options)
     registry = create_default_registry(extra_modules=plugin_modules)
     plugin = registry.resolve(
         model_path=model_path,

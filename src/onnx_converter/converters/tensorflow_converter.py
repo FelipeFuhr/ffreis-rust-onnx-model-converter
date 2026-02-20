@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 
 import tensorflow as tf
 import tf2onnx
+
+from onnx_converter.types import OptionValue, TensorSpecLike
 
 
 def _ensure_output_dir(output_path: str) -> None:
@@ -38,9 +41,9 @@ def _build_default_signature(model: tf.keras.Model) -> list[tf.TensorSpec] | Non
 def _convert_saved_model(
     model_path: str,
     output_path: str,
-    input_signature: list[tf.TensorSpec] | None,
+    input_signature: Sequence[TensorSpecLike] | None,
     opset_version: int,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> None:
     tf2onnx.convert.from_saved_model(
         model_path,
@@ -54,9 +57,9 @@ def _convert_saved_model(
 def _convert_keras_model(
     model: tf.keras.Model,
     output_path: str,
-    input_signature: list[tf.TensorSpec] | None,
+    input_signature: Sequence[TensorSpecLike] | None,
     opset_version: int,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> None:
     _ensure_keras_output_names(model)
     resolved_signature = input_signature or _build_default_signature(model)
@@ -73,9 +76,9 @@ def _convert_keras_model(
 def convert_tensorflow_to_onnx(
     model: str | tf.keras.Model,
     output_path: str,
-    input_signature: list[tf.TensorSpec] | None = None,
+    input_signature: Sequence[TensorSpecLike] | None = None,
     opset_version: int = 14,
-    **kwargs: object,
+    **kwargs: OptionValue,
 ) -> str:
     """Convert a TensorFlow or Keras model to ONNX format.
 

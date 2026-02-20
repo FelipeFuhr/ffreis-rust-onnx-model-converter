@@ -1,4 +1,5 @@
-FROM ffreis/base-runner:local
+ARG BASE_RUNNER_IMAGE=ffreis/base-runner
+FROM ${BASE_RUNNER_IMAGE}
 
 ARG PYTHON_VERSION=3.13
 

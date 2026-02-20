@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  title: ONNX Converter Daemon
+  description: Upload model artifacts and download converted ONNX with integrity checks.
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      summary: Healthz
+      operationId: healthz_healthz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /readyz:
+    get:
+      summary: Readyz
+      operationId: readyz_readyz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadyResponse'
+  /v1/convert/upload:
+    post:
+      summary: Convert Upload
+      description: Convert uploaded artifact and return ONNX bytes.
+      operationId: convert_upload_v1_convert_upload_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_convert_upload_v1_convert_upload_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Convert Upload V1 Convert Upload Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    Body_convert_upload_v1_convert_upload_post:
+      properties:
+        artifact:
+          title: Artifact
+        framework:
+          type: string
+          title: Framework
+        expected_sha256:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Expected Sha256
+        input_shape:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Input Shape
+        n_features:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: N Features
+        opset_version:
+          type: integer
+          title: Opset Version
+          default: 14
+      type: object
+      required:
+      - artifact
+      - framework
+      title: Body_convert_upload_v1_convert_upload_post
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      title: HealthResponse
+      description: Health response payload.
+    ReadyResponse:
+      properties:
+        status:
+          type: string
+          title: Status
+      additionalProperties: false
+      type: object
+      required:
+      - status
+      title: ReadyResponse
+      description: Readiness response payload.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
