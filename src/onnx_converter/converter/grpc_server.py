@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from argparse import ArgumentParser as argparse_ArgumentParser
+import argparse
 from collections.abc import Iterable, Iterator
 from concurrent import futures
 from importlib import import_module as importlib_import_module
@@ -363,7 +363,7 @@ def create_server(*, host: str, port: int, max_workers: int = 8) -> _GrpcServer:
 
 def main() -> None:
     """Run converter daemon gRPC entrypoint."""
-    parser = argparse_ArgumentParser(description="ONNX converter daemon gRPC server.")
+    parser = argparse.ArgumentParser(description="ONNX converter daemon gRPC server.")
     parser.add_argument(
         "--host",
         default=os_getenv("CONVERTER_GRPC_HOST", "0.0.0.0"),

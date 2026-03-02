@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Iterable
-from importlib import import_module as importlib_import_module
 from importlib import util as importlib_util
 from pathlib import Path
+from re import compile as re_compile
+from sys import modules as sys_modules
 from types import ModuleType
 
 from pydantic import ValidationError
@@ -14,6 +16,8 @@ from onnx_converter.errors import PluginError
 from onnx_converter.plugins.base import ConverterPlugin, PluginOptions
 from onnx_converter.plugins.builtins import SklearnFilePlugin
 from onnx_converter.schemas import PluginResolutionConfig
+
+_MODULE_PATH_RE = re_compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
 
 
 class PluginRegistry:
@@ -196,7 +200,21 @@ def _import_module_or_path(module_or_path: str) -> ModuleType:
         return module
 
     try:
-        return importlib_import_module(module_or_path)
+        if not _MODULE_PATH_RE.fullmatch(module_or_path):
+            raise PluginError(
+                "Invalid plugin module path. Use dotted module path format "
+                "(e.g., package.subpackage.module)."
+            )
+        loaded = sys_modules.get(module_or_path)
+        if isinstance(loaded, ModuleType):
+            return loaded
+        spec = importlib.util.find_spec(module_or_path)
+        if spec is None or spec.loader is None:
+            raise PluginError(f"Unable to import plugin module '{module_or_path}'.")
+        module = importlib_util.module_from_spec(spec)
+        sys_modules[module_or_path] = module
+        spec.loader.exec_module(module)
+        return module
     except Exception as exc:
         raise PluginError(
             f"Unable to import plugin module '{module_or_path}': {exc}"

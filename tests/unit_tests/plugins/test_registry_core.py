@@ -9,6 +9,7 @@ from pytest import MonkeyPatch as pytest_MonkeyPatch
 from pytest import raises as pytest_raises
 
 from onnx_converter.errors import PluginError
+from onnx_converter.plugins import registry as registry_module
 from onnx_converter.plugins.registry import (
     PluginRegistry,
     _import_module_or_path,
@@ -114,7 +115,8 @@ def test_import_module_invalid_path_spec_raises(
     plugin_file = tmp_path / "plugin_mod.py"
     plugin_file.write_text("x = 1\n", encoding="utf-8")
     monkeypatch.setattr(
-        "onnx_converter.plugins.registry.importlib.util.spec_from_file_location",
+        registry_module.importlib_util,
+        "spec_from_file_location",
         lambda *_args, **_kwargs: None,
     )
     with pytest_raises(PluginError, match="Unable to load plugin module"):
