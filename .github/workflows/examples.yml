@@ -69,13 +69,15 @@ jobs:
             dockerfile="${entry%% *}"
             image="${entry##* }"
             echo "Building ${image} from ${dockerfile}"
-            docker build -f "${dockerfile}" -t "${image}" .
+            docker build -f "${dockerfile}" \
+              --build-arg EXAMPLES_BASE_IMAGE=onnx-converter/examples-base:local \
+              -t "${image}" .
             echo "Running ${image}"
             docker run --rm "${image}"
           done
 
   autosklearn-examples:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
@@ -110,7 +112,9 @@ jobs:
             dockerfile="${entry%% *}"
             image="${entry##* }"
             echo "Building ${image} from ${dockerfile}"
-            docker build -f "${dockerfile}" -t "${image}" .
+            docker build -f "${dockerfile}" \
+              --build-arg EXAMPLES_BASE_IMAGE=onnx-converter/examples-base:local \
+              -t "${image}" .
             echo "Running ${image}"
             docker run --rm "${image}"
           done
