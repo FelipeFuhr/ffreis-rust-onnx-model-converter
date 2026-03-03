@@ -31,6 +31,8 @@ permissions:
 jobs:
   image-scan:
     runs-on: ubuntu-latest
+    env:
+      TRIVY_SCAN_TIMEOUT: 30m
     steps:
       - uses: actions/checkout@v6
       - name: Install Podman
@@ -67,11 +69,13 @@ jobs:
             name="${image##*/}"
             archive="trivy-results/${name}.docker.tar"
             rm -f "$archive"
+            echo "[$(date -u +%FT%TZ)] exporting ${image} -> ${archive}"
             podman save -o "$archive" "$image"
+            echo "[$(date -u +%FT%TZ)] scanning ${archive}"
 
             # 1) Always produce SARIF for all severities so GitHub code scanning
             # has complete visibility, regardless of pass/fail gate outcome.
-            trivy image \
+            timeout --foreground "${TRIVY_SCAN_TIMEOUT}" trivy image \
               --input "$archive" \
               --skip-db-update \
               --no-progress \
@@ -85,7 +89,7 @@ jobs:
             test -s "trivy-results/${name}.sarif"
 
             # 1b) Export JSON for trend analysis and triage automation.
-            trivy image \
+            timeout --foreground "${TRIVY_SCAN_TIMEOUT}" trivy image \
               --input "$archive" \
               --skip-db-update \
               --no-progress \
@@ -100,7 +104,7 @@ jobs:
 
             # 2) Print a human-readable full report in CI logs (all severities).
             echo "Full vulnerability report for ${image} (all severities):"
-            trivy image \
+            timeout --foreground "${TRIVY_SCAN_TIMEOUT}" trivy image \
               --input "$archive" \
               --skip-db-update \
               --no-progress \
@@ -113,7 +117,7 @@ jobs:
 
             # 3) Enforce policy: fail only when HIGH/CRITICAL vulnerabilities exist.
             echo "Gating ${image} on HIGH/CRITICAL vulnerabilities..."
-            trivy image \
+            timeout --foreground "${TRIVY_SCAN_TIMEOUT}" trivy image \
               --input "$archive" \
               --skip-db-update \
               --no-progress \
@@ -123,7 +127,9 @@ jobs:
               --ignore-unfixed \
               --exit-code 1 \
               --format table
+            echo "[$(date -u +%FT%TZ)] completed ${image}"
           done
+          echo "[$(date -u +%FT%TZ)] all image scans completed"
       - name: Upload Trivy JSON reports
         uses: actions/upload-artifact@v4
         with:

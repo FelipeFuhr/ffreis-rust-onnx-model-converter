@@ -32,6 +32,8 @@ permissions:
 jobs:
   grype:
     runs-on: ubuntu-latest
+    env:
+      GRYPE_SCAN_TIMEOUT: 30m
 
     steps:
       - uses: actions/checkout@v6
@@ -86,17 +88,41 @@ jobs:
           mkdir -p grype-results
 
           images=(ffreis/base ffreis/base-runner ffreis/onnx-converter-uv-venv ffreis/onnx-converter-package ffreis/onnx-converter-cli)
+          high_or_critical_found=0
 
           for image in "${images[@]}"; do
             name="${image##*/}"
             out="grype-results/${name}.sarif"
+            echo "[$(date -u +%FT%TZ)] scanning ${image} -> ${out}"
 
-            ./bin/grype "podman:${image}" -o sarif --file "$out" --fail-on high
+            # 1) Verbose console report: print all vulnerabilities.
+            #    Keep fail threshold at high/critical, but defer failing the job
+            #    so SARIF exports for every image are still produced.
+            if ! timeout --foreground "${GRYPE_SCAN_TIMEOUT}" \
+              ./bin/grype "podman:${image}" -o table --fail-on high; then
+              rc=$?
+              if [ "$rc" -eq 124 ]; then
+                echo "::error::Grype scan timed out for ${image} after ${GRYPE_SCAN_TIMEOUT}."
+                exit "$rc"
+              fi
+              high_or_critical_found=1
+              echo "::warning::High/Critical vulnerabilities detected in ${image}."
+            fi
+
+            # 2) Always export complete SARIF for code-scanning upload.
+            timeout --foreground "${GRYPE_SCAN_TIMEOUT}" \
+              ./bin/grype "podman:${image}" -o sarif --file "$out"
 
             test -s "$out"
+            echo "[$(date -u +%FT%TZ)] completed ${image}"
           done
+
+          if [ "$high_or_critical_found" -ne 0 ]; then
+            echo "::error::High/Critical vulnerabilities were detected. See logs and uploaded SARIF."
+            exit 1
+          fi
       - name: Upload Grype SARIF (per image)
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+        if: ${{ always() && hashFiles('grype-results/*.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false) }}
         run: |
           set -euo pipefail
           shopt -s nullglob
