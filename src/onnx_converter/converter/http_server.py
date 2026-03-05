@@ -179,7 +179,16 @@ def create_app() -> FastAPI:
     async def readyz() -> ReadyResponse:
         return ReadyResponse(status="ready")
 
-    @app.post("/v1/convert/upload")
+    @app.post(
+        "/v1/convert/upload",
+        response_class=Response,
+        responses={
+            200: {
+                "content": {"application/octet-stream": {}},
+                "description": "ONNX model bytes",
+            }
+        },
+    )
     async def convert_upload(
         artifact: UploadFile = artifact_param,
         framework: str = framework_param,

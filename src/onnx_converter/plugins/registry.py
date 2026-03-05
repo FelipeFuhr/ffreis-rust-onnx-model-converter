@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 from collections.abc import Iterable
 from importlib import util as importlib_util
 from pathlib import Path
@@ -209,7 +208,7 @@ def _import_module_or_path(module_or_path: str) -> ModuleType:
         loaded = sys_modules.get(module_or_path)
         if isinstance(loaded, ModuleType):
             return loaded
-        spec = importlib.util.find_spec(module_or_path)
+        spec = importlib_util.find_spec(module_or_path)
         if spec is None or spec.loader is None:
             raise PluginError(f"Unable to import plugin module '{module_or_path}'.")
         module = importlib_util.module_from_spec(spec)

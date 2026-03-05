@@ -90,7 +90,7 @@ def convert_torch_file(
         "input_shape": config.input_shape,
         "input_names": cast(list[OptionValue], input_names or []),
         "output_names": cast(list[OptionValue], output_names or []),
-        "dynamic_axes": cast(dict[str, OptionValue], dynamic_axes or {}),
+        "dynamic_axes": cast(dict[str, OptionValue] | None, dynamic_axes),
         "opset_version": config.opset_version,
     }
     out_path = converter.convert(

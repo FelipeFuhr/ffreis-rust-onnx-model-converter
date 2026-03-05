@@ -77,17 +77,11 @@ pip install -e ".[all]"         # secure default bundle (excludes tf_legacy)
 
 gRPC server reflection is intentionally not enabled in runtime paths.
 
-### Recommended AutoSklearn Installs
+### AutoSklearn notes
 
-```bash
-# AutoSklearn 1 (current supported stack in this repo)
-uv pip install ".[autosklearn_legacy]"
+AutoSklearn support is implemented via plugins in this repository. At the moment, this project does **not** ship a dedicated `autosklearn_legacy` extra or `autosklearn*` dependency-groups in `pyproject.toml`, so you should install AutoSklearn and its dependencies separately alongside this package (for example by pinning them in your own environment or project configuration).
 
-# Container-compatible install path (keeps all legacy pins in pyproject groups)
-uv pip install --group autosklearn1_build --group autosklearn_legacy_bootstrap --group autosklearn_legacy_runtime
-```
-
-Why split stacks are preferred for AutoSklearn:
+When doing so, keep in mind that AutoSklearn 1.x and 2.x target different stacks:
 
 | Component | ASKL1 | ASKL2 |
 | --- | --- | --- |
