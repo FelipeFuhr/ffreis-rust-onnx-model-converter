@@ -47,7 +47,7 @@ jobs:
 
       - name: Upload integration coverage to Codecov
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
         with:
           files: ./coverage.xml
           flags: integration
@@ -88,7 +88,7 @@ jobs:
 
       - name: Upload TensorFlow integration coverage to Codecov
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
-        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
         with:
           files: ./coverage-tf.xml
           flags: integration-tf-legacy
